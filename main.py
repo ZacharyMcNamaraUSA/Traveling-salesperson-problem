@@ -14,7 +14,6 @@ import Package
 
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
-my_packages_list = []
 total_miles = 0.00
 total_packages = 0
 total_stops = 0
@@ -26,33 +25,24 @@ truck_B = []
 #                 "Taylorsville-Bennion Heritage City Gov Off", "Salt Lake City Division of Health Services", ]
 
 
+# Function create_package_hashtable populates the custom hashtable data structure for package info
+#   receives and parses a csv file with wgups package info
 def create_package_hashtable(filename):
     with open(filename) as csv_file:
         read_csv = csv.reader(csv_file, delimiter=',')
         global total_packages
 
-        temp = Package.Package()
         for row in read_csv:  # For every row in CSV file
             key = row[0]
-
-            temp.key = key
-            temp.address = [row[1], row[2], row[3], row[4]]
-            temp.delivery_time = row[5]
-            temp.weight = row[6]
-            temp.notes = row[7]
-            my_packages_list.append(temp)
-
-            packages.add(key, temp)
-
-
-            # print(row[0] + "\t\t" + row[5] + "\t\t" + row[7])
-            # print(row)
-
+            new_package = [key, row[1], row[2], row[3], row[4], row[5], row[6], row[7]]
+            packages.add(key, new_package)
             total_packages += 1
 
         csv_file.close()
 
 
+# Function populates the custom hashtable data structure for distance info
+#   param: csv_filename is a csv file with wgups distance table information
 def create_distance_hashtable(csv_filename):
     with open(csv_filename) as csvfile:
         read_csv = csv.reader(csvfile, delimiter=',')
@@ -69,7 +59,7 @@ def create_distance_hashtable(csv_filename):
         csvfile.close()
 
 
-# Function finds distance between 2 Stops
+# Function finds the distance between 2 Stops
 #   params: target destination and a previous destination (current location), defaults to HUB
 #       a destination's key is its primary identifier in the HashTable distances
 def lookup_distance(target, previous="4001 South 700 East"):
@@ -117,10 +107,8 @@ def distance_of_route_as_ordered(packs):
     return miles
 
 
-# Currently selects every package using a for loo
-
-
-# Selects up to 16 Packages then randomly shuffles the order
+# Selects packages for internal testing purposes
+# returns the selected packages, default max "limit" is 16
 def select_random_packages(limit=16):
     selected = []
     if limit >= packages.count or limit <= 0:
@@ -139,7 +127,7 @@ def select_random_packages(limit=16):
     return selected
 
 
-# This functino was never finished. See Diijkstra's Shortest Path Algorithm (greedy algorithm)
+# This function was never finished. See Diijkstra's Shortest Path Algorithm (greedy algorithm)
 # Finds the closest, by distance, delivery location
 def find_closest_destination(addresses, current_address="4001 South 700 East"):
     # I just need to look at the distances hashtable using current_address as a key
@@ -177,16 +165,17 @@ def find_closest_destination(addresses, current_address="4001 South 700 East"):
     return closest
 
 
-# Adds a list of Packages "my_packs" to the designated Truck "car"
+# Adds a list of packages "my_packs" to the designated Truck "car"
 #   Packages are tracked by their key, the 1st element in the delivery address  i.e. distances.get(i)[1]
-def load_truck(car, packs):
+def load_truck(car, load_packs):
 
-    for i in packs:
+    for i in load_packs:
         car.append(i)
 
     return car
 
 
+# Function visually shows a new route on the provided tkinter Canvas
 def try_a_new_random_route(canvas):
     print("TEST A RANDOM ROUTE")
     # Make a temp list of Packages by randomly selecting all Packages
@@ -199,6 +188,8 @@ def try_a_new_random_route(canvas):
     canvas.pack()
 
 
+# DIFFERENCE BETWEEN try_a_new_random_route and try_a_random_route is NOT KNOWN
+# Function visually shows a new route on the provided tkinter Canvas
 def try_a_random_route(canvas):
     print("TEST A RANDOM ROUTE")
     # Make a temp list of Packages by randomly selecting all Packages
@@ -219,8 +210,6 @@ def get_constrained_package_keys(p_list):
     for p in range(1, p_list.count):
         message = ""
         pack = packages.get(p)
-        # print(p)
-        # print(pack)
 
         # This if condition reruns the loop if the Package pack is not constrained.
         #       Therefore, if the condition does not stop the loop, pack is a constrained Package
@@ -249,20 +238,13 @@ def main():
     # Creating the hashtable for the distances between Cities CSV file
     # create_distance_hashtable("wgups_distance_table.csv")
 
-    pkge_count = 1
-    for p in my_packages_list:
-        if p.key != "":
-            print(p)
-        else:
-            print("you aint got no key. pkge_count=" + str(pkge_count))
-        pkge_count += 1
+    # get the key for priority packages
+    get_constrained_package_keys(packages)
 
 
 
-
-
-    while False:
-
+    # This while loop controls the console menu users interact with
+    while True:
         print("""
               Enter " " to rerun 
               1. Find total miles traveled
@@ -276,6 +258,7 @@ def main():
               """)
         ans = input("What would you like to do? ")
         if ans == "1":
+            """ Find Total miles travelled """
             my_packages = select_random_packages(packages.count)
             route_distance = distance_of_route_as_ordered(select_random_packages(packages.count))
             print("route1_distance is {:.1f}".format(route_distance) + " MILES and delivered "
@@ -322,17 +305,21 @@ def main():
         elif ans == " ":
             main()
         elif ans == "2":
+            """ Show snapshot - the current status of each package """
             print("Get snapshot")
         elif ans == "3":
+            """ shows package HashTable 
+                    useful for internal testing """
             print("\nPACKAGE HashTable")
             packages.print()
-            print("\nHere's the HashTable of distances for you...")
-            distances.print()
+
         elif ans == "4":
-            print("Goodbye")
-            break
+            """ shows distances HashTable
+                    useful for internal testing """
+            print("\nHere's the HashTable of DISTANCES for you...")
+            distances.print()
         elif ans == "5":
-            # Create the circles, graphically, which represent a Package's delivery destination
+            """ graphically show a snapshot """
             g.create_stops()
 
             root = tk.Tk()
@@ -360,24 +347,29 @@ def main():
 
             # print("The distance between " + dest1 + " and " + "the HUB is " + str(miles) + " miles.")
         elif ans == "6":
+            """" Prints all Packages with constraints """
             constrained_keys = get_constrained_package_keys(packages)
 
             print("There are " + str(len(constrained_keys)) + " constrained Packages.")
             print(constrained_keys)
         elif ans == "7":
+            """ Find distance travelled to deliver these select packages
+                    I am unsure why this is an input option and not its own function. """
             k = 0
-            tripA = []
+            trip1 = []
             for item in range(packages.get_count()):
                 k += 1
                 # print("k % 4 = " + str(k%4))
                 if k % 4 == 0:
                     continue
-                tripA.append(packages.get(k)[0])
+                trip1.append(packages.get(k)[0])
 
-            distance_of_route_as_ordered(tripA)
+            distance_of_route_as_ordered(trip1)
         elif ans == "0":
+            """ exit the program"""
             break
         else:
+            """ If user enters an unanticipated option, they should be re-prompted for input"""
             print("Not a Valid Choice. Try again")
 
 
