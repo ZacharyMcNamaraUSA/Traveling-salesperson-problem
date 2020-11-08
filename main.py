@@ -21,9 +21,6 @@ regulars = []
 truck_A = []
 truck_B = []
 
-# "HUB", "International Peace Gardens", "Sugar House Park",
-#                 "Taylorsville-Bennion Heritage City Gov Off", "Salt Lake City Division of Health Services", ]
-
 
 # Function create_package_hashtable populates the custom hashtable data structure for package info
 #   receives and parses a csv file with wgups package info
@@ -206,10 +203,9 @@ def try_a_random_route(canvas):
 
 
 # Function selects package(s) with a delivery deadline or special notes
-def get_constrained_package_keys(p_list):
+def get_constrained_packages(p_list):
     keys = []
     for p in range(1, p_list.count):
-        message = ""
         pack = packages.get(p)
 
         # This if condition reruns the loop if the Package pack is not constrained.
@@ -217,17 +213,15 @@ def get_constrained_package_keys(p_list):
         if pack[5] == "EOD" and pack[7] == "":
             continue
 
-        keys.append(pack[1])
-        message += "Package " + pack[0] + "\n"
+        keys.append(pack)
 
     return keys
 
 
 # Function prints constraints for any of the provided packages
 def print_constrained_info(constrained_list):
-    for p in range(1, len(constrained_list)):
+    for pack in constrained_list:
         message = ""
-        pack = packages.get(p)
 
         # This if condition reruns the loop if the Package pack is not constrained.
         #       Therefore, if the condition does not stop the loop, pack is a constrained Package
@@ -254,9 +248,12 @@ def main():
     # Creating the hashtable for the distances between Cities CSV file
     # create_distance_hashtable("wgups_distance_table.csv")
 
-    # get the key for priority packages
-    constrained = get_constrained_package_keys(packages)
-    print_constrained_info(constrained)
+    # get the keys for priority packages
+    constrained_keys = get_constrained_packages(packages)
+    print_constrained_info(constrained_keys)
+
+    for c in constrained_keys:
+        print(c[5])
 
 
 
@@ -264,19 +261,45 @@ def main():
     # This while loop controls the console menu users interact with
     while True:
         print("""
-              Enter " " to rerun 
-              1. Find total miles traveled
-              2. Get snapshot
-              3. Print Packages HashTable
-              4. Print Distances HashTable
-              5. Graphics
-              6. Show ALL constrained Packages
-              7. Find miles travelled from selected Packages
-              0. Exit/Quit
-              """)
-        ans = input("What would you like to do? ")
+    Welcome to the menu! Enter your selection below 
+        1. Find total miles traveled
+        2. Get snapshot
+        3. Print Packages HashTable
+        4. Print Distances HashTable
+        5. Graphics
+        6. Show ALL constrained Packages
+        7. Find miles travelled from selected Packages
+        0. Exit/Quit
+    """)
+        ans = input("What would you like to do? INPUT: ")
+        print()
         if ans == "1":
             """ Find Total miles travelled """
+            my_packages = select_random_packages(packages.count)
+            route_distance = distance_of_route_as_ordered(select_random_packages(packages.count))
+            print("route1_distance is {:.1f}".format(route_distance) + " MILES and delivered "
+                  + str(len(my_packages)) + " packages.")
+            current_best = route_distance
+            if current_best < best_distance:
+                best_distance = current_best
+                print("NEW BEST RECORD!!! Only {:.1f}".format(best_distance) + " MILES")
+
+            current_best = 0.0
+            best_distance = float("inf")
+
+            # Find the key for each Package with constraints on its delivery
+            constrained_keys = get_constrained_packages(packages)
+            print("There are " + str(len(constrained_keys)) + " constrained Packages, all printed below.")
+            print(constrained_keys)
+
+            # Distribute the Packages with earlier delivery times to the first 2 loads
+            load1 = []
+            for n in constrained_keys:
+                print("n is:" + n + ". See?")
+                print(packages.get(n))
+
+            print(packages.get("410 S State St"))
+
             my_packages = select_random_packages(packages.count)
             route_distance = distance_of_route_as_ordered(select_random_packages(packages.count))
             print("route1_distance is {:.1f}".format(route_distance) + " MILES and delivered "
@@ -290,38 +313,7 @@ def main():
 
 
 
-        current_best = 0.0
-        best_distance = float("inf")
 
-        # Find the key for each Package with constraints on its delivery
-        constrained_keys = get_constrained_package_keys(packages)
-        print("There are " + str(len(constrained_keys)) + " constrained Packages, all printed below.")
-        print(constrained_keys)
-
-        # Distribute the Packages with earlier delivery times to the first 2 loads
-        load1 = []
-        for n in constrained_keys:
-            print("n is:" + n + ". See?")
-            print(packages.get(n))
-
-        print(packages.get("410 S State St"))
-
-        my_packages = select_random_packages(packages.count)
-        route_distance = distance_of_route_as_ordered(select_random_packages(packages.count))
-        print("route1_distance is {:.1f}".format(route_distance) + " MILES and delivered "
-              + str(len(my_packages)) + " packages.")
-        current_best = route_distance
-        if current_best < best_distance:
-            best_distance = current_best
-            print("NEW BEST RECORD!!! Only {:.1f}".format(best_distance) + " MILES")
-
-
-
-
-
-
-        elif ans == " ":
-            main()
         elif ans == "2":
             """ Show snapshot - the current status of each package """
             print("Get snapshot")
@@ -366,10 +358,12 @@ def main():
             # print("The distance between " + dest1 + " and " + "the HUB is " + str(miles) + " miles.")
         elif ans == "6":
             """" Prints all Packages with constraints """
-            constrained_keys = get_constrained_package_keys(packages)
+            # get the keys for priority packages
+            constrained_keys = get_constrained_packages(packages)
+            for p in constrained_keys:
+                print(p)
 
             print("There are " + str(len(constrained_keys)) + " constrained Packages.")
-            print(constrained_keys)
         elif ans == "7":
             """ Find distance travelled to deliver these select packages
                     I am unsure why this is an input option and not its own function. """
@@ -385,7 +379,7 @@ def main():
             distance_of_route_as_ordered(trip1)
         elif ans == "0":
             """ exit the program"""
-            break
+            raise SystemExit
         else:
             """ If user enters an unanticipated option, they should be re-prompted for input"""
             print("Not a Valid Choice. Try again")
