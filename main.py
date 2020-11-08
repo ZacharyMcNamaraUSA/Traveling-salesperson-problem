@@ -205,6 +205,7 @@ def try_a_random_route(canvas):
     canvas.pack()
 
 
+# Function selects package(s) with a delivery deadline or special notes
 def get_constrained_package_keys(p_list):
     keys = []
     for p in range(1, p_list.count):
@@ -219,6 +220,22 @@ def get_constrained_package_keys(p_list):
         keys.append(pack[1])
         message += "Package " + pack[0] + "\n"
 
+    return keys
+
+
+# Function prints constraints for any of the provided packages
+def print_constrained_info(constrained_list):
+    for p in range(1, len(constrained_list)):
+        message = ""
+        pack = packages.get(p)
+
+        # This if condition reruns the loop if the Package pack is not constrained.
+        #       Therefore, if the condition does not stop the loop, pack is a constrained Package
+        if pack[5] == "EOD" and pack[7] == "":
+            continue
+
+        message += "Package " + pack[0] + "\n"
+
         # IF the Package must be delivered by a specific time
         if pack[5] != "EOD":
             message += "\t\tDelivery deadline is " + pack[5] + ".\n"
@@ -226,9 +243,8 @@ def get_constrained_package_keys(p_list):
         # IF the Package has special instructions
         if pack[7] != "":
             message += "\t\tInstructions: " + pack[0] + ": " + pack[7] + ".\n"
-        print(message)
 
-    return keys
+        print(message)
 
 
 def main():
@@ -239,7 +255,9 @@ def main():
     # create_distance_hashtable("wgups_distance_table.csv")
 
     # get the key for priority packages
-    get_constrained_package_keys(packages)
+    constrained = get_constrained_package_keys(packages)
+    print_constrained_info(constrained)
+
 
 
 
