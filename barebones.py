@@ -10,8 +10,8 @@ import operator
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
 verts = hashtable.HashTable()
-vertex_keys = []
-g = Graph()
+vertexes = []
+graph = Graph()
 total_miles = 0.00
 total_packages = 0
 list_of_all_stops = []
@@ -48,7 +48,6 @@ def create_distance_hashtable(csv_filename):
         for row in read_csv:  # For every row in CSV file
             edges = ""
             key = row[1]
-            vertex_keys.append(key)
 
             for i in range(4, len(row)):
                 if row[i] != "":
@@ -173,6 +172,8 @@ def dijkstra_shortest_path(g, start_vertex):
     unvisited_queue = []
     for current_vertex in g.adjacency_list:
         unvisited_queue.append(current_vertex)
+    #     print("appending vertex'" + current_vertex.label + "' to unvisited_queue!")
+    # print("len(unvisited_queue)=" + str(len(unvisited_queue)))
 
     # Start_vertex has a distance of 0 from itself
     start_vertex.distance = 0
@@ -180,6 +181,9 @@ def dijkstra_shortest_path(g, start_vertex):
     # One vertex is removed with each iteration; repeat until the list is
     # empty.
     while len(unvisited_queue) > 0:
+        print("there are more unvisited vertexes still")
+        for v in unvisited_queue:
+            print(v.label)
 
         # Visit vertex with minimum distance from start_vertex
         smallest_index = 0
@@ -187,17 +191,34 @@ def dijkstra_shortest_path(g, start_vertex):
             if unvisited_queue[i].distance < unvisited_queue[smallest_index].distance:
                 smallest_index = i
         current_vertex = unvisited_queue.pop(smallest_index)
+        # print("type of current_vertex=" + str(type(current_vertex)))
 
         # Check potential path lengths from the current vertex to all neighbors.
         for adj_vertex in g.adjacency_list[current_vertex]:
-            edge_weight = g.edge_weights[(current_vertex, adj_vertex)]
+            # print("\n\n\nentering for loop..\n\n\n")
+            # print("adv_vertex=" + str(adj_vertex))
+            # print("current_vertex=" + current_vertex.label)
+            # print("adj_vertex=" + adj_vertex.label)
+            edge_weight = float(g.edge_weights[(current_vertex, adj_vertex)])
+            # print("edge_weight=" + str(edge_weight))
+            # print("edge_weight type: " + str(type(edge_weight)))
+            # print("current_vertex.distance type: " + str(type(current_vertex.distance)))
+            # print("current_vertex.distance=" + str(current_vertex.distance))
+
             alternative_path_distance = current_vertex.distance + edge_weight
 
             # If shorter path from start_vertex to adj_vertex is found,
             # update adj_vertex's distance and predecessor
             if alternative_path_distance < adj_vertex.distance:
+                print("Alt_path_dist < adj_vertex.distance....\n\tA closer vertex has been found."
+                      "Update the infos. Set the pred_vertex!!!\n\t\tcurrent: " + current_vertex.label +
+                      " -> " + adj_vertex.label + " is now the shortest path. dist of " + str(alternative_path_distance))
                 adj_vertex.distance = alternative_path_distance
                 adj_vertex.pred_vertex = current_vertex
+                # print("type of adj_vertex.pred_vertex=" + str(type(adj_vertex.pred_vertex)))
+            else:
+                # print("this is not a shorter path")
+                pass
 
 
 def get_shortest_path(start_vertex, end_vertex):
@@ -205,6 +226,7 @@ def get_shortest_path(start_vertex, end_vertex):
     path = ""
     current_vertex = end_vertex
     while current_vertex is not start_vertex:
+        # print("current_vertex is " + str(type(current_vertex)))
         path = " -> " + str(current_vertex.label) + path
         current_vertex = current_vertex.pred_vertex
     path = start_vertex.label + path
@@ -215,144 +237,146 @@ def main():
 
     g = Graph()
 
+    vertex_0 = Vertex("4001 South 700 East")
+    vertex_1 = Vertex("1060 Dalton Ave S")
+    vertex_2 = Vertex("1330 2100 S")
+    vertex_3 = Vertex("1488 4800 S")
+    vertex_4 = Vertex("177 W Price Ave")
+    vertex_5 = Vertex("195 W Oakland Ave")
+    vertex_6 = Vertex("2010 W 500 S")
+    vertex_7 = Vertex("2300 Parkway Blvd")
+    vertex_8 = Vertex("233 Canyon Rd")
+    vertex_9 = Vertex("2530 S 500 E")
+    vertex_10 = Vertex("2600 Taylorsville Blvd")
+    vertex_11 = Vertex("2835 Main St")
+    vertex_12 = Vertex("300 State St")
+    vertex_13 = Vertex("3060 Lester St")
+    vertex_14 = Vertex("3148 S 1100 W")
+    vertex_15 = Vertex("3365 S 900 W")
+    vertex_16 = Vertex("3575 W Valley Central Station bus Loop")
+    vertex_17 = Vertex("3595 Main St")
+    vertex_18 = Vertex("380 W 2880 S")
+    vertex_19 = Vertex("410 S State St")
+    vertex_20 = Vertex("4300 S 1300 E")
+    vertex_21 = Vertex("4580 S 2300 E")
+    vertex_22 = Vertex("5025 State St")
+    vertex_23 = Vertex("5100 South 2700 West")
+    vertex_24 = Vertex("5383 South 900 East #104")
+    vertex_25 = Vertex("600 E 900 South")
+    vertex_26 = Vertex("6351 South 900 East")
+    vertexes.append(vertex_0)
+    vertexes.append(vertex_1)
+    vertexes.append(vertex_2)
+    vertexes.append(vertex_3)
+    vertexes.append(vertex_4)
+    vertexes.append(vertex_5)
+    vertexes.append(vertex_6)
+    vertexes.append(vertex_7)
+    vertexes.append(vertex_8)
+    vertexes.append(vertex_9)
+    vertexes.append(vertex_10)
+    vertexes.append(vertex_11)
+    vertexes.append(vertex_12)
+    vertexes.append(vertex_13)
+    vertexes.append(vertex_14)
+    vertexes.append(vertex_15)
+    vertexes.append(vertex_16)
+    vertexes.append(vertex_17)
+    vertexes.append(vertex_18)
+    vertexes.append(vertex_19)
+    vertexes.append(vertex_20)
+    vertexes.append(vertex_21)
+    vertexes.append(vertex_22)
+    vertexes.append(vertex_23)
+    vertexes.append(vertex_24)
+    vertexes.append(vertex_25)
+    vertexes.append(vertex_26)
 
+    for v in vertexes:
+        g.add_vertex(v, vertexes)
 
-    vertex_8 = Vertex("4001 South 700 East")
-    vertex_9 = Vertex("1060 Dalton Ave S")
-    vertex_10 = Vertex("1330 2100 S")
-    vertex_11 = Vertex("1488 4800 S")
-    vertex_12 = Vertex("177 W Price Ave")
-    vertex_13 = Vertex("195 W Oakland Ave")
-    vertex_14 = Vertex("2010 W 500S")
-    vertex_15 = Vertex("2300 Parkway Blvd")
-    vertex_16 = Vertex("233 Canyon Rd")
-    vertex_17 = Vertex("2530 S 500 E")
-    vertex_18 = Vertex("2600 Taylorsville Blvd")
-    vertex_19 = Vertex("2835 Main St")
-    vertex_20 = Vertex("300 State St")
-    vertex_21 = Vertex("3060 Lester St")
-    vertex_22 = Vertex("3148 S 1100 W")
-    vertex_23 = Vertex("3365 S 900 W")
-    vertex_24 = Vertex("3575 W Valley Central Station bus Loop")
-    vertex_25 = Vertex("2595 Main St")
-    vertex_26 = Vertex("380 W 2880 S")
-    vertex_27 = Vertex("410 S State St")
-    vertex_28 = Vertex("4300 S 1300 E")
-    vertex_29 = Vertex("4580 S 2300 E")
-    vertex_30 = Vertex("5025 State St")
-    vertex_31 = Vertex("5100 South 2700")
-    vertex_32 = Vertex("5383 S 900 East #104")
-    vertex_33 = Vertex("600 E 900 South")
-    vertex_34 = Vertex("6351 South 900 East")
-
-    g.add_vertex(vertex_8)
-    g.add_vertex(vertex_9)
-    g.add_vertex(vertex_10)
-    g.add_vertex(vertex_11)
-    g.add_vertex(vertex_12)
-    g.add_vertex(vertex_13)
-    g.add_vertex(vertex_14)
-    g.add_vertex(vertex_15)
-    g.add_vertex(vertex_16)
-    g.add_vertex(vertex_17)
-    g.add_vertex(vertex_18)
-    g.add_vertex(vertex_19)
-    g.add_vertex(vertex_20)
-    g.add_vertex(vertex_21)
-    g.add_vertex(vertex_22)
-    g.add_vertex(vertex_23)
-    g.add_vertex(vertex_24)
-    g.add_vertex(vertex_25)
-    g.add_vertex(vertex_26)
-    g.add_vertex(vertex_27)
-    g.add_vertex(vertex_28)
-    g.add_vertex(vertex_29)
-    g.add_vertex(vertex_30)
-    g.add_vertex(vertex_31)
-    g.add_vertex(vertex_32)
-    g.add_vertex(vertex_33)
-    g.add_vertex(vertex_34)
 
 
 
 
     # Creating the hashtable for the Packages CSV file
     create_package_hashtable("wgups_package_file.csv")
+    # packages.print()
 
     # Creating the hashtable for the distances between Cities CSV file
     create_distance_hashtable("wgups_distance_table.csv")
+    # distances.print()
 
 
 
-
-
-
-    # for l in vertex_keys:
-    #     print(l)
-    #     edges = []
-    #     stop = distances.get(l)
-    #     print(stop)
-    #     for i in range(1, len(stop)):
-    #         if stop[i] == "":
-    #             continue
-    #         print(i)
-    #         edges.append(stop[i])
-    #
-    #     print(g.add_vertex(Vertex(l, edges)))
-
-    # dijkstra_shortest_path(g, vertex_9)
-    #
-    # for v in sorted(g.adjacency_list, key=operator.attrgetter("label")):
-    #     if v.pred_vertex is None and v is not vertex_9:
-    #         print("A to %s: no path exists" % v.label)
-    #     else:
-    #         print("A to %s: %s (total weight: %g)" % (v.label, get_shortest_path(vertex_9, v), v.distance))
 
     # set secondary_stop default to the HUB
     secondary_stop = distances.get("4001 South 700 East")
     # this loops through all stops
-    for s in range(1, len(list_of_all_stops)):
-        stop_tracker = s
-        print(list_of_all_stops[s])
-        stop = distances.get(list_of_all_stops[s])
-        print("1st stop... ")
-        print(stop)
-        print("secondary stop")
-        print(secondary_stop)
-        for d in range(5, len(stop)):
-            if stop[d] == "0.0":
-                print("\tLink this edge to itself with distance of 0.0")
-                print("\tg.add_undirected_edge(stop=" + stop[1] + ", prev_stop=" + stop[1] +
-                      ", weight=" + stop[d])
-                g.add_undirected_edge(stop[1], stop[1], stop[d])
-                break
-            elif stop[d] != "":
-                print(stop[d])
-                # How do I iterate through the stops here? Surrouding for loop?
-                # g.add_undirected_edge(s[1], s["HUB??"])
-                print("g.add_undirected_edge(stop=" + stop[1] + ", prev_stop=" + secondary_stop[1] +
-                      ", weight=" + stop[d])
-                g.add_undirected_edge(stop[1], secondary_stop[1], stop[d])
-                stop_tracker -= 1
-            secondary_stop = distances.get(list_of_all_stops[stop_tracker])
+
+    # This loop does keeps track of the vertex being worked on.
+    #       Necessary so that the
+    cnt = 1
+    for v in range(0, len(vertexes)):
+        vert_tracker = v-1
+        if vert_tracker < 0:
+            vert_tracker = 0
+        vert1 = vertexes[v]
+        vert2 = vertexes[vert_tracker]
+
+        # print("\n\nbegin next iteration...")
+        # print("1st vertex =" + vert1.label)
+        # print("\t2nd vertex=" + vert2.label)
+        #
+        # print("vertexes[" + str(v) + "].label: " + vertexes[v].label)
+        stop = distances.get(vertexes[v].label)
+        # print("stop #" + str(cnt) + " is type: " + str(type(stop)))
+        cnt += 1
+        # print("stop follows below...")
+        # print(stop)
+
+        # This loop goes through the WEIGHT of the edge
+        #       between vert1 and all vert2 in vertexes with a smaller index
+        for s in range(5, len(stop)):
+            vert2 = vertexes[vert_tracker]
+
+            if stop[s] == "0.0":
+                # print("trying to make weight='" + stop[s] + "'.")
+                weight = float(stop[s])
+                # print("weight type: " + str(type(weight)))
+                # print("\tLink this edge to ITSELF with distance of 0.0")
+                # print("\t\tg.add_undirected_edge(stop=" + vert1.label + ", prev_stop=" + vert1.label +
+                #       ", weight=" + stop[s])
+                g.add_undirected_edge(vert1, vert1, stop[s])
+            elif stop[s] != "":
+                # print("trying to make weight='" + stop[s] + "'.")
+                weight = float(stop[s])
+                # print("weight type: " + str(type(weight)))
+                # print("\tg.add_undirected_edge(stop=" + vert1.label + ", prev_stop=" + vert2.label +
+                #       ", weight=" + stop[s])
+                g.add_undirected_edge(vert1, vert2, float(stop[s]))
+
+            vert_tracker -= 1
+            vert2 = vertexes[vert_tracker]
+            # print("Changing vert2 to be vert2.label=" + vert2.label)
 
 
 
-    # # get the keys for priority packages
-    # constrained_keys = get_constrained_packages(packages)
-    # print_constrained_info(constrained_keys)
-    # print("done w/ constrained_keys")
-    #
-    # # has_deadline = []
-    # # for c in constrained_keys:
-    # #     if c[5] != "EOD":
-    # #         print("Package {0} deadline is {1}".format(c[0], c[5]))
-    # #         has_deadline.append(c)
-    #
-    # dist1 = distance_of_route_as_ordered(constrained_keys)
-    # # print("dist1=" + str(dist1))
 
+    dijkstra_shortest_path(g, vertex_0)
 
+    # Sort the vertices by the label, for convenience; display shortest path for each vertex
+    # from vertex_a.
+    for v in sorted(g.adjacency_list, key=operator.attrgetter("label")):
+        print("From g.adjacency_list, Vertex v=" + v.label)
+        if v.pred_vertex is None and v is not vertex_0:
+            print("\tHUB to %s: no path exists" % v.label)
+            if v is not vertex_0:
+                print("\t\t\tThere is no previous vertex for v=" + v.label)
+        else:
+            # print("\tv is a " + str(type(v)))
+            # print("\tvertex_0 is a " + str(type(vertex_0)))
+            print("\tHUB to %s: %s (total weight: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
 
     # This while loop controls the console menu users interact with
     while False:
