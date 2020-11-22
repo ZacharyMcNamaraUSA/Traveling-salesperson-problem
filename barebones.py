@@ -2,6 +2,8 @@
 
 import copy
 import csv
+from cmath import inf
+
 import hashtable
 import Package
 from graph import Graph, Vertex
@@ -10,7 +12,7 @@ import operator
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
 verts = hashtable.HashTable()
-vertexes = []
+vertices = []
 graph = Graph()
 total_miles = 0.00
 total_packages = 0
@@ -181,56 +183,59 @@ def dijkstra_shortest_path(g, start_vertex):
     # One vertex is removed with each iteration; repeat until the list is
     # empty.
     while len(unvisited_queue) > 0:
-        print("there are more unvisited vertexes still")
-        for v in unvisited_queue:
-            print(v.label)
+        # print("\n")
 
         # Visit vertex with minimum distance from start_vertex
         smallest_index = 0
         for i in range(1, len(unvisited_queue)):
+            # print("\tunvisited_queue[" + str(i) + "].distance={:0.2f}.".format(unvisited_queue[i].distance))
             if unvisited_queue[i].distance < unvisited_queue[smallest_index].distance:
+                # print("\tnew smallest_index [i]=" + str(i))
                 smallest_index = i
+        # print("\tpopping off unvisited_queue(smallest_index)=" + str(unvisited_queue[smallest_index].label))
         current_vertex = unvisited_queue.pop(smallest_index)
-        # print("type of current_vertex=" + str(type(current_vertex)))
+        # print("\tNEW current_vertex is " + current_vertex.label)
 
-        # Check potential path lengths from the current vertex to all neighbors.
+        # Check potential path lengths from the current vertex to all adjacent vertices.
         for adj_vertex in g.adjacency_list[current_vertex]:
-            # print("\n\n\nentering for loop..\n\n\n")
-            # print("adv_vertex=" + str(adj_vertex))
-            # print("current_vertex=" + current_vertex.label)
-            # print("adj_vertex=" + adj_vertex.label)
-            edge_weight = float(g.edge_weights[(current_vertex, adj_vertex)])
-            # print("edge_weight=" + str(edge_weight))
-            # print("edge_weight type: " + str(type(edge_weight)))
-            # print("current_vertex.distance type: " + str(type(current_vertex.distance)))
-            # print("current_vertex.distance=" + str(current_vertex.distance))
+            # print("\n\t\tcurrent_vertex remains " + current_vertex.label)
+            # print("\t\t\ttesting: adj_vertex=" + adj_vertex.label)
 
-            alternative_path_distance = current_vertex.distance + edge_weight
+            try:
+                edge_weight = g.edge_weights[(current_vertex, adj_vertex)]
+                alternative_path_distance = current_vertex.distance + edge_weight
+            except KeyError:
+                print("No edge between current_v=" + current_vertex.label + " and adjacent_v=" + adj_vertex.label)
+                continue
+
+            # print("\t\t\t\tDistance between current_vertex and adj_vertex is edge_weight={:.1f}".format(edge_weight) +
+            #                 " + current_vertex.distance={:.1f}".format(current_vertex.distance))
+            # print("\t\t\t\tAlternative_path_distance={:.1f}".format(alternative_path_distance))
 
             # If shorter path from start_vertex to adj_vertex is found,
             # update adj_vertex's distance and predecessor
             if alternative_path_distance < adj_vertex.distance:
-                print("Alt_path_dist < adj_vertex.distance....\n\tA closer vertex has been found."
-                      "Update the infos. Set the pred_vertex!!!\n\t\tcurrent: " + current_vertex.label +
-                      " -> " + adj_vertex.label + " is now the shortest path. dist of " + str(alternative_path_distance))
+                # print("\t\t\t\tA closer vertex has been found! Old:(" + adj_vertex.label
+                #       + ").distance={:.1f}".format(adj_vertex.distance) + "")
+                # print("\t\t\t\tNEW closest distance is {:0.2}".format(alternative_path_distance))
                 adj_vertex.distance = alternative_path_distance
                 adj_vertex.pred_vertex = current_vertex
-                # print("type of adj_vertex.pred_vertex=" + str(type(adj_vertex.pred_vertex)))
-            else:
-                # print("this is not a shorter path")
-                pass
+                # print("\t\t\t\tNow that I have declared a pred_vertex...")
+                # print("\t\t\t\t\tadj_vertex.pred_vertex:" + adj_vertex.pred_vertex.label)
 
 
 def get_shortest_path(start_vertex, end_vertex):
     # Start from end_vertex and build the path backwards.
     path = ""
+    total_distance = 0.0
     current_vertex = end_vertex
     while current_vertex is not start_vertex:
-        # print("current_vertex is " + str(type(current_vertex)))
-        path = " -> " + str(current_vertex.label) + path
+        total_distance += current_vertex.distance
+
+        path = " -> '" + str(current_vertex.label) + "', adds {:.1f}".format(current_vertex.distance) + " miles " + path
         current_vertex = current_vertex.pred_vertex
     path = start_vertex.label + path
-    return path
+    return path, total_distance
 
 
 def main():
@@ -264,40 +269,241 @@ def main():
     vertex_24 = Vertex("5383 South 900 East #104")
     vertex_25 = Vertex("600 E 900 South")
     vertex_26 = Vertex("6351 South 900 East")
-    vertexes.append(vertex_0)
-    vertexes.append(vertex_1)
-    vertexes.append(vertex_2)
-    vertexes.append(vertex_3)
-    vertexes.append(vertex_4)
-    vertexes.append(vertex_5)
-    vertexes.append(vertex_6)
-    vertexes.append(vertex_7)
-    vertexes.append(vertex_8)
-    vertexes.append(vertex_9)
-    vertexes.append(vertex_10)
-    vertexes.append(vertex_11)
-    vertexes.append(vertex_12)
-    vertexes.append(vertex_13)
-    vertexes.append(vertex_14)
-    vertexes.append(vertex_15)
-    vertexes.append(vertex_16)
-    vertexes.append(vertex_17)
-    vertexes.append(vertex_18)
-    vertexes.append(vertex_19)
-    vertexes.append(vertex_20)
-    vertexes.append(vertex_21)
-    vertexes.append(vertex_22)
-    vertexes.append(vertex_23)
-    vertexes.append(vertex_24)
-    vertexes.append(vertex_25)
-    vertexes.append(vertex_26)
 
-    for v in vertexes:
-        g.add_vertex(v, vertexes)
+    g.add_vertex(vertex_0)
+    g.add_vertex(vertex_1)
+    g.add_vertex(vertex_2)
+    g.add_vertex(vertex_3)
+    g.add_vertex(vertex_4)
+    g.add_vertex(vertex_5)
+    g.add_vertex(vertex_6)
+    g.add_vertex(vertex_7)
+    g.add_vertex(vertex_8)
+    g.add_vertex(vertex_9)
+    g.add_vertex(vertex_10)
+    g.add_vertex(vertex_11)
+    g.add_vertex(vertex_12)
+    g.add_vertex(vertex_13)
+    g.add_vertex(vertex_14)
+    g.add_vertex(vertex_15)
+    g.add_vertex(vertex_16)
+    g.add_vertex(vertex_17)
+    g.add_vertex(vertex_18)
+    g.add_vertex(vertex_19)
+    g.add_vertex(vertex_20)
+    g.add_vertex(vertex_21)
+    g.add_vertex(vertex_22)
+    g.add_vertex(vertex_23)
+    g.add_vertex(vertex_24)
+    g.add_vertex(vertex_25)
+    g.add_vertex(vertex_26)
 
+    g.add_directed_edge(vertex_26, vertex_26, 0.0)
+    g.add_undirected_edge(vertex_26, vertex_24, 1.3)
+    g.add_undirected_edge(vertex_26, vertex_22, 3.1)
+    g.add_undirected_edge(vertex_26, vertex_20, 4.1)
+    g.add_undirected_edge(vertex_26, vertex_18, 6.9)
+    g.add_undirected_edge(vertex_26, vertex_0, 3.6)
+    g.set_adjacent_vertexes(vertex_26, [vertex_24, vertex_22, vertex_20, vertex_18, vertex_0])
 
+    g.add_directed_edge(vertex_25, vertex_25, 0.0)
+    g.add_undirected_edge(vertex_25, vertex_0, 5.0)
+    g.add_undirected_edge(vertex_25, vertex_2, 2.8)
+    g.add_undirected_edge(vertex_25, vertex_5, 3.5)
+    g.add_undirected_edge(vertex_25, vertex_8, 2.8)
+    g.add_undirected_edge(vertex_25, vertex_9, 3.2)
+    g.add_undirected_edge(vertex_25, vertex_11, 3.7)
+    g.add_undirected_edge(vertex_25, vertex_12, 2.8)
+    g.add_undirected_edge(vertex_25, vertex_19, 1.8)
+    g.add_undirected_edge(vertex_25, vertex_20, 6.0)
+    g.set_adjacent_vertexes(vertex_25, [vertex_0, vertex_2, vertex_5, vertex_8, vertex_9,
+                                        vertex_11, vertex_12, vertex_19, vertex_20])
 
+    g.add_directed_edge(vertex_24, vertex_24, 0.0)
+    g.add_undirected_edge(vertex_24, vertex_0, 2.4)
+    g.add_undirected_edge(vertex_24, vertex_4, 4.2)
+    g.add_undirected_edge(vertex_24, vertex_9, 4.8)
+    g.add_undirected_edge(vertex_24, vertex_10, 4.9)
+    g.add_undirected_edge(vertex_24, vertex_17, 4.0)
+    g.add_undirected_edge(vertex_24, vertex_20, 2.8)
+    g.add_undirected_edge(vertex_24, vertex_21, 3.4)
+    g.add_undirected_edge(vertex_24, vertex_22, 1.7)
 
+    g.add_directed_edge(vertex_23, vertex_23, 0.0)
+    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
+    g.add_undirected_edge(vertex_23, vertex_3, 0.6)
+    g.add_undirected_edge(vertex_23, vertex_7, 4.2)
+    g.add_undirected_edge(vertex_23, vertex_10, 0.4)
+    g.add_undirected_edge(vertex_23, vertex_13, 4.4)
+    g.add_undirected_edge(vertex_23, vertex_14, 4.8)
+    g.add_undirected_edge(vertex_23, vertex_13, 4.5)
+
+    g.add_directed_edge(vertex_22, vertex_22, 0.0)
+    g.add_undirected_edge(vertex_22, vertex_0, 2.4)
+    g.add_undirected_edge(vertex_22, vertex_4, 2.5)
+    g.add_undirected_edge(vertex_22, vertex_5, 4.2)
+    g.add_undirected_edge(vertex_22, vertex_9, 4.3)
+    g.add_undirected_edge(vertex_22, vertex_10, 4.1)
+    g.add_undirected_edge(vertex_22, vertex_11, 3.4)
+    g.add_undirected_edge(vertex_22, vertex_15, 4.2)
+    g.add_undirected_edge(vertex_22, vertex_17, 2.3)
+    g.add_undirected_edge(vertex_22, vertex_20, 2.9)
+    g.add_undirected_edge(vertex_22, vertex_21, 4.4)
+
+    g.add_directed_edge(vertex_21, vertex_21, 0.0)
+    g.add_undirected_edge(vertex_21, vertex_0, 3.4)
+    g.add_undirected_edge(vertex_21, vertex_4, 5.2)
+    g.add_undirected_edge(vertex_21, vertex_9, 5.8)
+    g.add_undirected_edge(vertex_21, vertex_20, 2.0)
+
+    g.add_directed_edge(vertex_20, vertex_20, 0.0)
+    g.add_undirected_edge(vertex_20, vertex_0, 1.9)
+    g.add_undirected_edge(vertex_20, vertex_2, 3.3)
+    g.add_undirected_edge(vertex_20, vertex_4, 3.2)
+    g.add_undirected_edge(vertex_20, vertex_5, 4.9)
+    g.add_undirected_edge(vertex_20, vertex_8, 8.5)
+    g.add_undirected_edge(vertex_20, vertex_9, 3.8)
+    g.add_undirected_edge(vertex_20, vertex_11, 4.1)
+    g.add_undirected_edge(vertex_20, vertex_17, 3.0)
+    g.add_undirected_edge(vertex_20, vertex_18, 4.6)
+
+    g.add_directed_edge(vertex_19, vertex_19, 0.0)
+    g.add_undirected_edge(vertex_19, vertex_0, 6.5)
+    g.add_undirected_edge(vertex_19, vertex_1, 4.8)
+    g.add_undirected_edge(vertex_19, vertex_2, 4.3)
+    g.add_undirected_edge(vertex_19, vertex_5, 3.5)
+    g.add_undirected_edge(vertex_19, vertex_6, 3.2)
+    g.add_undirected_edge(vertex_19, vertex_8, 1.0)
+    g.add_undirected_edge(vertex_19, vertex_9, 4.1)
+    g.add_undirected_edge(vertex_19, vertex_11, 3.7)
+    g.add_undirected_edge(vertex_19, vertex_12, 1.0)
+    g.add_undirected_edge(vertex_19, vertex_18, 4.4)
+
+    g.add_directed_edge(vertex_18, vertex_18, 0.0)
+    g.add_undirected_edge(vertex_18, vertex_0, 3.6)
+    g.add_undirected_edge(vertex_18, vertex_2, 3.6)
+    g.add_undirected_edge(vertex_18, vertex_4, 1.7)
+    g.add_undirected_edge(vertex_18, vertex_5, 1.1)
+    g.add_undirected_edge(vertex_18, vertex_9, 1.8)
+    g.add_undirected_edge(vertex_18, vertex_11, 1.0)
+    g.add_undirected_edge(vertex_18, vertex_13, 3.0)
+    g.add_undirected_edge(vertex_18, vertex_14, 2.2)
+    g.add_undirected_edge(vertex_18, vertex_15, 1.7)
+    g.add_undirected_edge(vertex_18, vertex_16, 1.6)
+
+    g.add_directed_edge(vertex_17, vertex_17, 0.0)
+    g.add_undirected_edge(vertex_17, vertex_0, 2.0)
+    g.add_undirected_edge(vertex_17, vertex_4, 0.5)
+    g.add_undirected_edge(vertex_17, vertex_5, 1.9)
+    g.add_undirected_edge(vertex_17, vertex_9, 2.3)
+    g.add_undirected_edge(vertex_17, vertex_11, 1.2)
+    g.add_undirected_edge(vertex_17, vertex_13, 3.2)
+    g.add_undirected_edge(vertex_17, vertex_14, 2.4)
+    g.add_undirected_edge(vertex_17, vertex_15, 1.6)
+
+    g.add_directed_edge(vertex_16, vertex_16, 0.0)
+    g.add_undirected_edge(vertex_16, vertex_0, 7.6)
+    g.add_undirected_edge(vertex_16, vertex_4, 1.4)
+    g.add_undirected_edge(vertex_16, vertex_12, 3.1)
+    g.add_undirected_edge(vertex_16, vertex_13, 4.0)
+
+    g.add_directed_edge(vertex_15, vertex_15, 0.0)
+    g.add_undirected_edge(vertex_15, vertex_0, 3.7)
+    g.add_undirected_edge(vertex_15, vertex_3, 4.4)
+    g.add_undirected_edge(vertex_15, vertex_4, 2.7)
+    g.add_undirected_edge(vertex_15, vertex_5, 3.8)
+    g.add_undirected_edge(vertex_15, vertex_7, 3.4)
+    g.add_undirected_edge(vertex_15, vertex_9, 4.0)
+    g.add_undirected_edge(vertex_15, vertex_11, 2.9)
+    g.add_undirected_edge(vertex_15, vertex_13, 1.5)
+    g.add_undirected_edge(vertex_15, vertex_14, 0.6)
+
+    g.add_directed_edge(vertex_14, vertex_14, 0.0)
+    g.add_undirected_edge(vertex_14, vertex_0, 4.4)
+    g.add_undirected_edge(vertex_14, vertex_4, 2.4)
+    g.add_undirected_edge(vertex_14, vertex_5, 3.0)
+    g.add_undirected_edge(vertex_14, vertex_7, 3.3)
+    g.add_undirected_edge(vertex_14, vertex_11, 2.6)
+    g.add_undirected_edge(vertex_14, vertex_13, 1.3)
+
+    g.add_directed_edge(vertex_13, vertex_13, 0.0)
+    g.add_undirected_edge(vertex_13, vertex_0, 5.2)
+    g.add_undirected_edge(vertex_13, vertex_1, 3.0)
+    g.add_undirected_edge(vertex_13, vertex_3, 3.9)
+    g.add_undirected_edge(vertex_13, vertex_4, 3.2)
+    g.add_undirected_edge(vertex_13, vertex_5, 3.9)
+    g.add_undirected_edge(vertex_13, vertex_7, 1.6)
+    g.add_undirected_edge(vertex_13, vertex_11, 3.5)
+
+    g.add_directed_edge(vertex_12, vertex_12, 0.0)
+    g.add_undirected_edge(vertex_12, vertex_0, 7.6)
+    g.add_undirected_edge(vertex_12, vertex_1, 4.8)
+    g.add_undirected_edge(vertex_12, vertex_6, 4.2)
+    g.add_undirected_edge(vertex_12, vertex_8, 0.6)
+    g.add_undirected_edge(vertex_12, vertex_11, 4.7)
+
+    g.add_directed_edge(vertex_11, vertex_11, 0.0)
+    g.add_undirected_edge(vertex_11, vertex_0, 3.2)
+    g.add_undirected_edge(vertex_11, vertex_2, 3.0)
+    g.add_undirected_edge(vertex_11, vertex_4, 1.5)
+    g.add_undirected_edge(vertex_11, vertex_5, 0.8)
+    g.add_undirected_edge(vertex_11, vertex_9, 1.1)
+
+    g.add_directed_edge(vertex_10, vertex_10, 0.0)
+    g.add_undirected_edge(vertex_10, vertex_0, 6.4)
+    g.add_undirected_edge(vertex_10, vertex_3, 1.0)
+    g.add_undirected_edge(vertex_10, vertex_7, 4.6)
+
+    g.add_directed_edge(vertex_9, vertex_9, 0.0)
+    g.add_undirected_edge(vertex_9, vertex_0, 2.8)
+    g.add_undirected_edge(vertex_9, vertex_2, 1.6)
+    g.add_undirected_edge(vertex_9, vertex_4, 2.6)
+    g.add_undirected_edge(vertex_9, vertex_5, 1.5)
+    g.add_undirected_edge(vertex_9, vertex_8, 4.8)
+
+    g.add_directed_edge(vertex_8, vertex_8, 0.0)
+    g.add_undirected_edge(vertex_8, vertex_0, 7.6)
+    g.add_undirected_edge(vertex_8, vertex_1, 4.8)
+    g.add_undirected_edge(vertex_8, vertex_5, 4.5)
+    g.add_undirected_edge(vertex_8, vertex_6, 4.2)
+
+    g.add_directed_edge(vertex_7, vertex_7, 0.0)
+    g.add_undirected_edge(vertex_7, vertex_0, 8.6)
+    g.add_undirected_edge(vertex_7, vertex_1, 2.8)
+    g.add_undirected_edge(vertex_7, vertex_3, 4.0)
+    g.add_undirected_edge(vertex_7, vertex_5, 4.3)
+    g.add_undirected_edge(vertex_7, vertex_6, 4.0)
+
+    g.add_directed_edge(vertex_6, vertex_6, 0.0)
+    g.add_undirected_edge(vertex_6, vertex_0, 10.9)
+    g.add_undirected_edge(vertex_6, vertex_1, 1.6)
+    g.add_undirected_edge(vertex_6, vertex_5, 6.3)
+
+    g.add_directed_edge(vertex_5, vertex_5, 0.0)
+    g.add_undirected_edge(vertex_5, vertex_0, 3.5)
+    g.add_undirected_edge(vertex_5, vertex_2, 2.8)
+    g.add_undirected_edge(vertex_5, vertex_4, 1.9)
+
+    g.add_directed_edge(vertex_4, vertex_4, 0.0)
+    g.add_undirected_edge(vertex_4, vertex_0, 2.2)
+    g.add_undirected_edge(vertex_4, vertex_2, 4.4)
+
+    g.add_directed_edge(vertex_3, vertex_3, 0.0)
+    g.add_undirected_edge(vertex_3, vertex_0, 11.0)
+    g.add_undirected_edge(vertex_3, vertex_1, 6.4)
+
+    g.add_undirected_edge(vertex_2, vertex_0, 3.8)
+    g.add_undirected_edge(vertex_2, vertex_1, 7.1)
+    g.add_directed_edge(vertex_2, vertex_2, 0.0)
+
+    g.add_undirected_edge(vertex_1, vertex_0, 7.2)
+    g.add_directed_edge(vertex_1, vertex_1, 0.0)
+
+    g.add_directed_edge(vertex_0, vertex_0, 0.0)
+    g.set_adjacent_vertexes(vertex_0, [vertex_1, vertex_2, vertex_3, vertex_4, vertex_5, vertex_6, vertex_7,
+                                       vertex_8, vertex_9, vertex_10, vertex_11, vertex_12, vertex_13,
+                                       vertex_14, vertex_15, vertex_16, vertex_17, vertex_18, vertex_19, vertex_20,
+                                       vertex_21, vertex_22, vertex_23, vertex_24, vertex_25, vertex_26])
 
     # Creating the hashtable for the Packages CSV file
     create_package_hashtable("wgups_package_file.csv")
@@ -307,63 +513,23 @@ def main():
     create_distance_hashtable("wgups_distance_table.csv")
     # distances.print()
 
-
-
-
-    # set secondary_stop default to the HUB
-    secondary_stop = distances.get("4001 South 700 East")
-    # this loops through all stops
-
-    # This loop does keeps track of the vertex being worked on.
-    #       Necessary so that the
-    cnt = 1
-    for v in range(0, len(vertexes)):
-        vert_tracker = v-1
-        if vert_tracker < 0:
-            vert_tracker = 0
-        vert1 = vertexes[v]
-        vert2 = vertexes[vert_tracker]
-
-        # print("\n\nbegin next iteration...")
-        # print("1st vertex =" + vert1.label)
-        # print("\t2nd vertex=" + vert2.label)
-        #
-        # print("vertexes[" + str(v) + "].label: " + vertexes[v].label)
-        stop = distances.get(vertexes[v].label)
-        # print("stop #" + str(cnt) + " is type: " + str(type(stop)))
-        cnt += 1
-        # print("stop follows below...")
-        # print(stop)
-
-        # This loop goes through the WEIGHT of the edge
-        #       between vert1 and all vert2 in vertexes with a smaller index
-        for s in range(5, len(stop)):
-            vert2 = vertexes[vert_tracker]
-
-            if stop[s] == "0.0":
-                # print("trying to make weight='" + stop[s] + "'.")
-                weight = float(stop[s])
-                # print("weight type: " + str(type(weight)))
-                # print("\tLink this edge to ITSELF with distance of 0.0")
-                # print("\t\tg.add_undirected_edge(stop=" + vert1.label + ", prev_stop=" + vert1.label +
-                #       ", weight=" + stop[s])
-                g.add_undirected_edge(vert1, vert1, stop[s])
-            elif stop[s] != "":
-                # print("trying to make weight='" + stop[s] + "'.")
-                weight = float(stop[s])
-                # print("weight type: " + str(type(weight)))
-                # print("\tg.add_undirected_edge(stop=" + vert1.label + ", prev_stop=" + vert2.label +
-                #       ", weight=" + stop[s])
-                g.add_undirected_edge(vert1, vert2, float(stop[s]))
-
-            vert_tracker -= 1
-            vert2 = vertexes[vert_tracker]
-            # print("Changing vert2 to be vert2.label=" + vert2.label)
-
-
-
+    # Try using greedy algorithm
+    #       like closest neighbor
 
     dijkstra_shortest_path(g, vertex_0)
+
+# This was helpful in testing adjacent vertices
+    # ver_count = 0
+    # adj_count = 0
+    # for ver in g.adjacency_list:
+    #     print("\t" + str(ver_count) + ": adj in g.adjacency_list[ver]=" + ver.label)
+    #     ver_count += 1
+    #     for adj in g.adjacency_list[ver]:
+    #         adj_count += 1
+    #     print("ver=" + ver.label + " has " + str(adj_count) + " adjacent vertices.")
+    #     adj_count = 0
+    #
+    # print("END")
 
     # Sort the vertices by the label, for convenience; display shortest path for each vertex
     # from vertex_a.
@@ -371,12 +537,29 @@ def main():
         print("From g.adjacency_list, Vertex v=" + v.label)
         if v.pred_vertex is None and v is not vertex_0:
             print("\tHUB to %s: no path exists" % v.label)
-            if v is not vertex_0:
-                print("\t\t\tThere is no previous vertex for v=" + v.label)
         else:
-            # print("\tv is a " + str(type(v)))
-            # print("\tvertex_0 is a " + str(type(vertex_0)))
-            print("\tHUB to %s: %s (total weight: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
+            print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
+
+    print("\n\n\n")
+    start_v = vertex_0
+    end_v = vertex_12
+    current_vertex = end_v
+    while current_vertex is not start_v:
+        print("current_vertex is " + current_vertex.label)
+        current_vertex = current_vertex.pred_vertex
+    path = get_shortest_path(vertex_0, end_v)
+    print("\tHUB to %s: %s (total distance: %g)" % (end_v.label, path[0], end_v.distance))
+
+    print("total distance between " + start_v.label + " and " + end_v.label + " is {:.1f}".format(path[1]) + " miles.")
+
+
+
+
+
+
+
+
+
 
     # This while loop controls the console menu users interact with
     while False:
