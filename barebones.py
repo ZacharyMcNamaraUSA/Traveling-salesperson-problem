@@ -4,26 +4,25 @@ import copy
 import csv
 from cmath import inf
 
+import package
+import truck
 import hashtable
 from graph import Graph, Vertex
 import operator
 
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
-vertices = []
-graph = Graph()
-total_miles = 0.00
-total_packages = 0
-list_of_all_stops = []
+joined = hashtable.HashTable()
+at_station_package_keys = []
+vertices = {}
 hour = 8
 minute = 0
-regulars = []
-truck_A = []
-truck_B = []
-truck_C = []
+truck_1 = truck.Truck("Truck 1")
+truck_2 = truck.Truck("Truck 2")
+truck_3 = truck.Truck("Truck 3")
+trucks_all = [truck_2, truck_1, truck_3]
 max_packages = 16
 speed = 18
-
 
 
 # Function create_package_hashtable populates the custom hashtable data structure for package info
@@ -31,13 +30,12 @@ speed = 18
 def create_package_hashtable(filename):
     with open(filename) as csv_file:
         read_csv = csv.reader(csv_file, delimiter=',')
-        global total_packages
 
         for row in read_csv:  # For every row in CSV file
             key = row[0]
             new_package = [key, row[1], row[2], row[3], row[4], row[5], row[6], row[7]]
             packages.add(key, new_package)
-            total_packages += 1
+            at_station_package_keys.append(key)
 
         csv_file.close()
 
@@ -61,88 +59,23 @@ def create_distance_hashtable(csv_filename):
             row.insert(0, str(stop_count))
             distances.add(key, row)
             stop_count += 1
-            list_of_all_stops.append(key)
 
         distance_csv.close()
 
 
-# Function finds the distance between 2 Stops
-#   params: target destination and a previous destination (current location), defaults to HUB
-#       a destination's key is its primary identifier in the HashTable distances
-def lookup_distance(target, previous="4001 South 700 East"):
-    tar = distances.get(target)
-    prev = distances.get(previous)
-
-    print("\n\n\nTARGET DESTINATION in lookup_distance: ")
-    print(target)
-    print(tar)
-    print("\tPREVIOUS DESTINATION in lookup_distance: ")
-    print(previous)
-    print(prev)
-    try:
-        # print("tried lookup_dist")
-        mi = 0.00
-
-        mi = float(prev[5 + int(tar[0])])
-    except ValueError:
-        # print("ValueError in lookup_dist")
-        mi = float(tar[5 + int(prev[0])])
-    except TypeError:
-        mi = 0.000
-        # print(type(mi))
-        print("TypeError in lookup_distance")
-        print("tar=" + str(tar))
-        print("prev=" + str(prev))
-
-    # print("WHY NOT HERE???????????????????????????????????????")
-    print("\t\tTraveling from " + prev[1] + prev[2] + " --> " +
-          tar[1] + tar[2] + " is " + "{:.2f}".format(mi) + " miles.")
-
-    return mi
-
-
-def distance_of_route_as_ordered(packs):
-    miles = 0.0
-    undelivered = []
-    for p in packs:
-        # print(p)
-        try:
-            undelivered.append(p)
-        except TypeError:
-            print("I did not find a Package in distance_of_route.\tp is " + str(p))
-
-    for num in range(len(packs)):
-        # print("START")
-        # print(packs[num])
-        # print(distances.get(packs[num][1]))
-        # print("Above me")
-        # print("num=" + str(num))
-        m = 0
-        if num == 0:
-            m = lookup_distance(packs[num][1])
-        else:
-            m: float = lookup_distance(packs[num][1], packs[num - 1][1])
-        miles += m
-        print("counting... miles=" "{:.2f}".format(miles))
-
-    # print("This route travelled {:.1f}".format(miles) + " MILES and delivered "
-    #               + str(len(undelivered)) + " packages.")
-
-    return miles
-
-
 # Function selects package(s) with a delivery deadline or special notes
 def get_constrained_packages(p_list):
+
+    # keys is a list of keys to be returned
     keys = []
+
+    # loop through each package
     for p in range(1, p_list.count):
         pack = packages.get(p)
 
-        # This if condition reruns the loop if the Package pack is not constrained.
-        #       Therefore, if the condition does not stop the loop, pack is a constrained Package
-        if pack[5] == "EOD" and pack[7] == "":
-            continue
-
-        keys.append(pack)
+        # If the package has a specific delivery deadline or special notes, append its key to keys
+        if pack[5] != "EOD" or pack[7] != "":
+            keys.append(pack)
 
     return keys
 
@@ -153,11 +86,12 @@ def print_constrained_info(constrained_list):
         message = ""
 
         # This if condition reruns the loop if the Package pack is not constrained.
-        #       Therefore, if the condition does not stop the loop, pack is a constrained Package
+        #       Therefore, if the condition does not stop the loop, pack is a constrained package
+        #       The condition here is to ensure only specially constrained packages are returned
         if pack[5] == "EOD" and pack[7] == "":
             continue
 
-        message += "Package " + pack[0] + "\n"
+        message += "package " + pack[0] + "\n"
 
         # IF the Package must be delivered by a specific time
         if pack[5] != "EOD":
@@ -225,6 +159,20 @@ def get_shortest_path(start_vertex, end_vertex):
 
 
 def main():
+
+    # Creating the hashtable for the Packages CSV file
+    create_package_hashtable("wgups_package_file.csv")
+
+    # creates a list of keys for packages with delivery deadlines or special delivery notes
+    constrained_keys = get_constrained_packages(packages)
+
+    # Creating the hashtable for the distances between Cities CSV file
+    create_distance_hashtable("wgups_distance_table.csv")
+
+    for n in range(1, packages.count + 1):
+        pack = packages.get(n)
+        stop = distances.get(pack[1])[2]
+        packages.add(stop, pack)
 
     g = Graph()
 
@@ -491,70 +439,142 @@ def main():
                                        vertex_14, vertex_15, vertex_16, vertex_17, vertex_18, vertex_19, vertex_20,
                                        vertex_21, vertex_22, vertex_23, vertex_24, vertex_25, vertex_26])
 
-    # Creating the hashtable for the Packages CSV file
-    create_package_hashtable("wgups_package_file.csv")
-    # packages.print()
-
-    # Creating the hashtable for the distances between Cities CSV file
-    create_distance_hashtable("wgups_distance_table.csv")
-    # distances.print()
-
     # Try using greedy algorithm
     #       like closest neighbor
 
     dijkstra_shortest_path(g, vertex_0)
 
-    # Sort the vertices by the label, for convenience; display shortest path for each vertex
-    # from vertex_a.
-    for v in sorted(g.adjacency_list, key=operator.attrgetter("label")):
-        print("From g.adjacency_list, Vertex v=" + v.label)
-        if v.pred_vertex is None and v is not vertex_0:
-            print("\tHUB to %s: no path exists" % v.label)
-        else:
-            path = get_shortest_path(vertex_0, v)
-            print("\tShortest path from " + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
-                  "\t\tThis traverses {:.1f}".format(v.distance) + " miles!")
+    assigned_vertexes = [vertex_0]
 
-# This is a print meant for testing purposes only
-    # rando_vert = vertex_13
-    # print("\n\n\n")
-    # p = get_shortest_path(vertex_0, rando_vert)
-    # print("the shortest path between HUB @ 4001 South 700 East and '" + rando_vert.label + "' is: " + p)
-    # print("\t\tShortest distance between these is {:.1f} miles".format(rando_vert.distance))
+    # First task is to load the trucks
+
+    # Load Truck 2 with the packages that can only go on truck 2
+    for p in constrained_keys:
+        if "truck 2" in p[7]:
+            print("Loading package #{0} to truck 2.\n\t\t\t\taddress: {1}".format(p[0], p[1]))
+            truck_2.loaded_package_keys.append(p[0])
+            at_station_package_keys.remove(p[0])
+            assigned_vertexes.append(g.get_vertex(p[1]))
+            truck_2.miles_driven += g.get_vertex(p[1]).distance
+
+    # if any package's address matches any address truck_2 is already stopping at, load it
+    for n in at_station_package_keys:
+        for k in truck_2.loaded_package_keys:
+            pap = packages.get(n)
+            if pap[1] in packages.get(k) and len(truck_2.loaded_package_keys) < max_packages:
+                print("\tEZ pickings! package #{0} \n\t\t\t\taddress: {1}".format(pap[0], pap[1]))
+                assigned_vertexes.append(pap[1])
+
+    # loop through every truck to load them as appropriate
+    #   trucks_all = [truck_2, truck_1, truck_3]
+    for current_truck in trucks_all:
+        print("Trying to load up {0}".format(current_truck.label))
+        print("There are {0} packages remaining at the HUB.".format(len(at_station_package_keys)))
+
+        count = 0
+        # loop through every package that is loaded
+        for n in current_truck.loaded_package_keys:
+
+            if len(current_truck.loaded_package_keys) >= max_packages:
+                print("We got a full load over here :(((((((((((((((((((((((((((((((((((")
+                break
+
+            count += 1
+            print("\n\n\ncount: {0}".format(count))
+            print("package #{0} has already been loaded".format(n))
+            pack = packages.get(n)
+
+            vert = g.get_vertex(pack[1])
+            print("vert.label=" + vert.label)
+
+            print("package #" + str(n) + " goes to " + vert.label)
+
+            can = 0
+            for adj in g.adjacency_list[vert]:
+                can += 1
+                print("can={0}".format(can))
+                if adj == vert or g.get_vertex(adj.label) in assigned_vertexes:
+                    continue
+
+                print("\t\tadjacent vertex:\t" + adj.label)
+
+                dist = g.edge_weights[(vert, adj)]
+                print("\t\t\t\t\t\t\t\tdistance = {:.1f}".format(dist))
+
+                if 3.5 >= dist > 0.0:
+                    p = packages.get(adj.label)
+                    print("p = packages.get(adj.label)...")
+                    print(p)
+                    print("p[0]={0} should be the key of the package that I am loading onto {1}".format(p[0],
+                                                                                                        current_truck.label))
+                    current_truck.loaded_package_keys.append(p[0])
+                    at_station_package_keys.remove(p[0])
+                    assigned_vertexes.append(g.get_vertex(p[1]))
+                    print("loading {0} with package #{1}, address={2}, because it is only {3} miles away"
+                          .format(current_truck.label, p[0], p[1], dist))
+
+                    print("{0} now has {1} packages loaded.\n".format(current_truck.label,
+                                                                      len(current_truck.loaded_package_keys)))
+
+        # possibly reorder the packages in the truck here...
+        # good way to decrease mileage
+
+        # find packages to add until the truck is at maximum capacity
+        #   break the loop if no acceptable packages are available
+
+
+
+        # while len(current_truck.loaded_package_keys) < max_packages or len(at_station_package_keys) <= 0:
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # This while loop controls the console menu users interact with
-    while False:
+    while True:
         print("""
     Welcome to the menu! Enter your selection below 
-        1. Find total miles traveled
+        1. Find shortest distance to every Stop
         2. Get snapshot
         3. Print Packages HashTable
         4. Print Distances HashTable
-        5. Graphics
+        5. Print joined HashTable [packages: distances]
         6. Show ALL constrained Packages
-        7. Find miles travelled from selected Packages
+        7. Find miles travelled by each truck
         0. Exit/Quit
     """)
         ans = input("What would you like to do? INPUT: ")
         print()
         if ans == "1":
-            """ Find Total miles travelled """
+            """ Find shortest distance to every Stop """
 
-            current_best = 0.0
-            best_distance = float("inf")
-
-            # my_packages = select_random_packages(packages.count)
-            # route_distance = distance_of_route_as_ordered(select_random_packages(packages.count))
-            # print("route1_distance is {:.1f}".format(route_distance) + " MILES and delivered "
-            #       + str(len(my_packages)) + " packages.")
-            # current_best = route_distance
-
-            if current_best < best_distance:
-                best_distance = current_best
-                print("NEW BEST RECORD!!! Only {:.1f}".format(best_distance) + " MILES")
+            # Sort the vertices by the label, for convenience; display shortest path for each vertex
+            # from vertex_a.
+            for v in sorted(g.adjacency_list, key=operator.attrgetter("label")):
+                print("From g.adjacency_list, Vertex v=" + v.label)
+                if v.pred_vertex is None and v is not vertex_0:
+                    print("\tHUB to %s: no path exists" % v.label)
+                else:
+                    path = get_shortest_path(vertex_0, v)
+                    print("\tShortest path from " + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
+                          "\t\tThis traverses {:.1f}".format(v.distance) + " miles!")
 
         elif ans == "2":
             """ Show snapshot - the current status of each package """
+
+            # Idea for how to do snapshot, have a List of delivered packages? no. dict.
+            #   key: package key = [truck that delivered it, stated delivery deadline, actual time delivered,
+            #       any special notes - ideally there will be none but creating space for some is good for scalability
+
             print("Get snapshot")
         elif ans == "3":
             """ shows package HashTable 
@@ -568,29 +588,35 @@ def main():
             print("\nHere's the HashTable of DISTANCES for you...")
             distances.print()
         elif ans == "5":
-            """ graphically show a snapshot """
+            """ Print joined HashTable """
+
+            print("\n\n\n")
+
+            p = packages.get(1)
+            print(p)
+            s = distances.get(p[1])
+            print(s)
+            # joined.get(p).print()
 
         elif ans == "6":
-            """" Prints all Packages with constraints """
-            # get the keys for priority packages
-            constrained_keys = get_constrained_packages(packages)
+            """" Prints all packages with constraints (delivery deadline or special notes) """
+            # get the keys for all constrained packages
             for p in constrained_keys:
                 print(p)
 
             print("There are " + str(len(constrained_keys)) + " constrained Packages.")
         elif ans == "7":
-            """ Find distance travelled to deliver these select packages
-                    I am unsure why this is an input option and not its own function. """
-            k = 0
-            trip1 = []
-            for item in range(packages.get_count()):
-                k += 1
-                # print("k % 4 = " + str(k%4))
-                if k % 4 == 0:
-                    continue
-                trip1.append(packages.get(k)[0])
+            """ Find miles travelled by each truck """
 
-            distance_of_route_as_ordered(trip1)
+            for t in trucks_all:
+                print("{0} has {1} packages, spanning {2:.1f} miles.".format(t.label,
+                                                                         len(t.loaded_package_keys), t.miles_driven))
+
+            # pseudo-code...
+            # for loop through each truck
+            #       find where each package's delivery address line matches with a vertex
+            #       the distance of each vertex to be delivered to is added together for that truck's total mileage
+
         elif ans == "0":
             """ exit the program"""
             raise SystemExit
