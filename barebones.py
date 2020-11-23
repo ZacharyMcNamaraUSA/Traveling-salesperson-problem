@@ -235,17 +235,14 @@ def dijkstra_shortest_path(g, start_vertex):
 def get_shortest_path(start_vertex, end_vertex):
     # Start from end_vertex and build the path backwards.
     path = ""
-    total_distance = 0.0
     current_vertex = end_vertex
+
     while current_vertex is not start_vertex:
         path = " -> " + str(current_vertex.label) + " is {:.1f}".format(current_vertex.distance) + " miles" + path
-
         current_vertex = current_vertex.pred_vertex
 
-        total_distance = current_vertex.distance
-
     path = start_vertex.label + path
-    return path, total_distance
+    return path
 
 
 def main():
@@ -538,8 +535,21 @@ def main():
             print("\tHUB to %s: no path exists" % v.label)
         else:
             path = get_shortest_path(vertex_0, v)
-            print("\tHUB to " + v.label + "... PATH:(" + path[0] + "), total distance of {:.1f}".format(path[1]) + " miles!")
-            # print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
+            print("\tShortest path from" + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
+                  "\t\tThis traverses {:.1f}".format(v.distance) + " miles!")
+            print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
+
+
+
+
+
+
+
+    rando_vert = vertex_13
+    print("\n\n\n")
+    p = get_shortest_path(vertex_0, rando_vert)
+    print("the shortest path between HUB @ 4001 South 700 East and '" + rando_vert.label + "' is: " + p)
+    print("\t\tShortest distance between these is {:.1f} miles".format(rando_vert.distance))
 
 
 
