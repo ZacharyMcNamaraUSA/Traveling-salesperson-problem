@@ -1,4 +1,4 @@
-#hashtable.py
+# hashtable.py by Zachary McNamara zmcnama@my.wgu.edu ID#001182706
 
 
 class HashTable:
@@ -30,7 +30,6 @@ class HashTable:
                     package[1] = value
             self.map[key_hash].append(key_value)
         self.count += 1
-        print("\t\tAdded something!\nkey=" + key + "\t\t")
 
     # Function to retrieve an element, if it is stored in the hashtable
     def get(self, key):
@@ -38,7 +37,6 @@ class HashTable:
         if self.map[key_hash] is not None:
             for item in self.map[key_hash]:
                 if item[0] == str(key):
-                    # print("YOU FOUND THE CORRECT ONE by matching the KEY!\t" + item[0] + " = " + str(key))
                     return item[1]
         return None
 
@@ -56,12 +54,10 @@ class HashTable:
         for item in self.map:
             if item is not None:
                 print(str(item))
-            else:
-                # print("this HashTable has no value(s) here")
-                pass
 
-    def get_count(self):
-        return self.count
+    @property
+    def count(self):
+        return self._count
 
     def get_hashed_list(self, key):
         for item in self.map:
@@ -78,26 +74,12 @@ class HashTable:
             return num
         except IndexError:
             raise StopIteration
+
     next = __next__
 
     def __iter__(self):
         return self
 
-
-
-
-    # def keys(self):
-    #     my_list = []
-    #     if self is None:
-    #         return None
-    #     else:
-    #         for element in range(0, len(self.map)):
-    #             for item in self.map[element]:
-    #                 my_list.append([item[0], item[1][1]])
-    #         return my_list
-
-
-
-
-
-
+    @count.setter
+    def count(self, value):
+        self._count = value
