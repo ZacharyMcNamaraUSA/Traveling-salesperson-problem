@@ -22,6 +22,10 @@ minute = 0
 regulars = []
 truck_A = []
 truck_B = []
+truck_C = []
+max_packages = 16
+speed = 18
+
 
 
 # Function create_package_hashtable populates the custom hashtable data structure for package info
@@ -174,6 +178,7 @@ def dijkstra_shortest_path(g, start_vertex):
     unvisited_queue = []
     for current_vertex in g.adjacency_list:
         unvisited_queue.append(current_vertex)
+        current_vertex.distance = inf
     #     print("appending vertex'" + current_vertex.label + "' to unvisited_queue!")
     # print("len(unvisited_queue)=" + str(len(unvisited_queue)))
 
@@ -183,23 +188,23 @@ def dijkstra_shortest_path(g, start_vertex):
     # One vertex is removed with each iteration; repeat until the list is
     # empty.
     while len(unvisited_queue) > 0:
-        # print("\n")
+        print("\n")
 
         # Visit vertex with minimum distance from start_vertex
         smallest_index = 0
         for i in range(1, len(unvisited_queue)):
-            # print("\tunvisited_queue[" + str(i) + "].distance={:0.2f}.".format(unvisited_queue[i].distance))
+            print("\tunvisited_queue[" + str(i) + "].distance={:0.1f}".format(unvisited_queue[i].distance))
             if unvisited_queue[i].distance < unvisited_queue[smallest_index].distance:
-                # print("\tnew smallest_index [i]=" + str(i))
+                print("\tnew smallest_index [i]=" + str(i))
                 smallest_index = i
-        # print("\tpopping off unvisited_queue(smallest_index)=" + str(unvisited_queue[smallest_index].label))
+        print("\tpopping off unvisited_queue(smallest_index)=" + str(unvisited_queue[smallest_index].label) +
+              " as NEW current_vertex")
         current_vertex = unvisited_queue.pop(smallest_index)
-        # print("\tNEW current_vertex is " + current_vertex.label)
 
         # Check potential path lengths from the current vertex to all adjacent vertices.
         for adj_vertex in g.adjacency_list[current_vertex]:
-            # print("\n\t\tcurrent_vertex remains " + current_vertex.label)
-            # print("\t\t\ttesting: adj_vertex=" + adj_vertex.label)
+            print("\n\t\tcurrent_vertex remains " + current_vertex.label)
+            print("\t\t\tcompare with: adj_vertex=" + adj_vertex.label)
 
             try:
                 edge_weight = g.edge_weights[(current_vertex, adj_vertex)]
@@ -208,20 +213,23 @@ def dijkstra_shortest_path(g, start_vertex):
                 print("No edge between current_v=" + current_vertex.label + " and adjacent_v=" + adj_vertex.label)
                 continue
 
-            # print("\t\t\t\tDistance between current_vertex and adj_vertex is edge_weight={:.1f}".format(edge_weight) +
-            #                 " + current_vertex.distance={:.1f}".format(current_vertex.distance))
-            # print("\t\t\t\tAlternative_path_distance={:.1f}".format(alternative_path_distance))
+            print("\t\t\t\tDistance between current_v and adjacent_v is the edge_weight={:.1f}".format(edge_weight))
+            print("\t\t\t\tReaching target/adjacent vertex: " + adj_vertex.label +
+                  " could be alt_path_dist={:.1f}".format(alternative_path_distance) +
+                  " vs. the previous best: {:.1f}".format(adj_vertex.distance))
 
             # If shorter path from start_vertex to adj_vertex is found,
             # update adj_vertex's distance and predecessor
             if alternative_path_distance < adj_vertex.distance:
-                # print("\t\t\t\tA closer vertex has been found! Old:(" + adj_vertex.label
-                #       + ").distance={:.1f}".format(adj_vertex.distance) + "")
-                # print("\t\t\t\tNEW closest distance is {:0.2}".format(alternative_path_distance))
+                print("\t\t\t\tThis vertex is closer!!! Old:(" + adj_vertex.label
+                      + ").distance={:.1f}".format(adj_vertex.distance) + "")
+                print("\t\t\t\t\t\tNEW {:.1f}".format(alternative_path_distance) + " < " +
+                      "old={:.1f}".format(adj_vertex.distance))
                 adj_vertex.distance = alternative_path_distance
                 adj_vertex.pred_vertex = current_vertex
-                # print("\t\t\t\tNow that I have declared a pred_vertex...")
-                # print("\t\t\t\t\tadj_vertex.pred_vertex:" + adj_vertex.pred_vertex.label)
+            else:
+                print("\t\t\t\t\t\tObviously {:.1f}".format(adj_vertex.distance) + " < " +
+                      "{:.1f}".format(alternative_path_distance) + "--the alt path")
 
 
 def get_shortest_path(start_vertex, end_vertex):
@@ -230,10 +238,12 @@ def get_shortest_path(start_vertex, end_vertex):
     total_distance = 0.0
     current_vertex = end_vertex
     while current_vertex is not start_vertex:
-        total_distance += current_vertex.distance
+        path = " -> " + str(current_vertex.label) + " is {:.1f}".format(current_vertex.distance) + " miles" + path
 
-        path = " -> '" + str(current_vertex.label) + "', adds {:.1f}".format(current_vertex.distance) + " miles " + path
         current_vertex = current_vertex.pred_vertex
+
+        total_distance = current_vertex.distance
+
     path = start_vertex.label + path
     return path, total_distance
 
@@ -518,18 +528,7 @@ def main():
 
     dijkstra_shortest_path(g, vertex_0)
 
-# This was helpful in testing adjacent vertices
-    # ver_count = 0
-    # adj_count = 0
-    # for ver in g.adjacency_list:
-    #     print("\t" + str(ver_count) + ": adj in g.adjacency_list[ver]=" + ver.label)
-    #     ver_count += 1
-    #     for adj in g.adjacency_list[ver]:
-    #         adj_count += 1
-    #     print("ver=" + ver.label + " has " + str(adj_count) + " adjacent vertices.")
-    #     adj_count = 0
-    #
-    # print("END")
+    print("\n\n")
 
     # Sort the vertices by the label, for convenience; display shortest path for each vertex
     # from vertex_a.
@@ -538,19 +537,9 @@ def main():
         if v.pred_vertex is None and v is not vertex_0:
             print("\tHUB to %s: no path exists" % v.label)
         else:
-            print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
-
-    print("\n\n\n")
-    start_v = vertex_0
-    end_v = vertex_12
-    current_vertex = end_v
-    while current_vertex is not start_v:
-        print("current_vertex is " + current_vertex.label)
-        current_vertex = current_vertex.pred_vertex
-    path = get_shortest_path(vertex_0, end_v)
-    print("\tHUB to %s: %s (total distance: %g)" % (end_v.label, path[0], end_v.distance))
-
-    print("total distance between " + start_v.label + " and " + end_v.label + " is {:.1f}".format(path[1]) + " miles.")
+            path = get_shortest_path(vertex_0, v)
+            print("\tHUB to " + v.label + "... PATH:(" + path[0] + "), total distance of {:.1f}".format(path[1]) + " miles!")
+            # print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
 
 
 
