@@ -5,13 +5,11 @@ import csv
 from cmath import inf
 
 import hashtable
-import Package
 from graph import Graph, Vertex
 import operator
 
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
-verts = hashtable.HashTable()
 vertices = []
 graph = Graph()
 total_miles = 0.00
@@ -59,7 +57,6 @@ def create_distance_hashtable(csv_filename):
                 if row[i] != "":
                     edges += row[i] + ","
                     # print("\t\t" + str(edges))
-            verts.add(key, edges)
 
             row.insert(0, str(stop_count))
             distances.add(key, row)
@@ -188,48 +185,30 @@ def dijkstra_shortest_path(g, start_vertex):
     # One vertex is removed with each iteration; repeat until the list is
     # empty.
     while len(unvisited_queue) > 0:
-        print("\n")
 
         # Visit vertex with minimum distance from start_vertex
         smallest_index = 0
         for i in range(1, len(unvisited_queue)):
-            print("\tunvisited_queue[" + str(i) + "].distance={:0.1f}".format(unvisited_queue[i].distance))
             if unvisited_queue[i].distance < unvisited_queue[smallest_index].distance:
-                print("\tnew smallest_index [i]=" + str(i))
                 smallest_index = i
-        print("\tpopping off unvisited_queue(smallest_index)=" + str(unvisited_queue[smallest_index].label) +
-              " as NEW current_vertex")
+
         current_vertex = unvisited_queue.pop(smallest_index)
 
         # Check potential path lengths from the current vertex to all adjacent vertices.
         for adj_vertex in g.adjacency_list[current_vertex]:
-            print("\n\t\tcurrent_vertex remains " + current_vertex.label)
-            print("\t\t\tcompare with: adj_vertex=" + adj_vertex.label)
 
             try:
                 edge_weight = g.edge_weights[(current_vertex, adj_vertex)]
                 alternative_path_distance = current_vertex.distance + edge_weight
             except KeyError:
-                print("No edge between current_v=" + current_vertex.label + " and adjacent_v=" + adj_vertex.label)
+                print("PROBLEM! No edge between curr_v=" + current_vertex.label + " and adj_v=" + adj_vertex.label)
                 continue
-
-            print("\t\t\t\tDistance between current_v and adjacent_v is the edge_weight={:.1f}".format(edge_weight))
-            print("\t\t\t\tReaching target/adjacent vertex: " + adj_vertex.label +
-                  " could be alt_path_dist={:.1f}".format(alternative_path_distance) +
-                  " vs. the previous best: {:.1f}".format(adj_vertex.distance))
 
             # If shorter path from start_vertex to adj_vertex is found,
             # update adj_vertex's distance and predecessor
             if alternative_path_distance < adj_vertex.distance:
-                print("\t\t\t\tThis vertex is closer!!! Old:(" + adj_vertex.label
-                      + ").distance={:.1f}".format(adj_vertex.distance) + "")
-                print("\t\t\t\t\t\tNEW {:.1f}".format(alternative_path_distance) + " < " +
-                      "old={:.1f}".format(adj_vertex.distance))
                 adj_vertex.distance = alternative_path_distance
                 adj_vertex.pred_vertex = current_vertex
-            else:
-                print("\t\t\t\t\t\tObviously {:.1f}".format(adj_vertex.distance) + " < " +
-                      "{:.1f}".format(alternative_path_distance) + "--the alt path")
 
 
 def get_shortest_path(start_vertex, end_vertex):
@@ -525,8 +504,6 @@ def main():
 
     dijkstra_shortest_path(g, vertex_0)
 
-    print("\n\n")
-
     # Sort the vertices by the label, for convenience; display shortest path for each vertex
     # from vertex_a.
     for v in sorted(g.adjacency_list, key=operator.attrgetter("label")):
@@ -535,30 +512,15 @@ def main():
             print("\tHUB to %s: no path exists" % v.label)
         else:
             path = get_shortest_path(vertex_0, v)
-            print("\tShortest path from" + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
+            print("\tShortest path from " + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
                   "\t\tThis traverses {:.1f}".format(v.distance) + " miles!")
-            print("\tHUB to %s: %s (total distance: %g)" % (v.label, get_shortest_path(vertex_0, v), v.distance))
 
-
-
-
-
-
-
-    rando_vert = vertex_13
-    print("\n\n\n")
-    p = get_shortest_path(vertex_0, rando_vert)
-    print("the shortest path between HUB @ 4001 South 700 East and '" + rando_vert.label + "' is: " + p)
-    print("\t\tShortest distance between these is {:.1f} miles".format(rando_vert.distance))
-
-
-
-
-
-
-
-
-
+# This is a print meant for testing purposes only
+    # rando_vert = vertex_13
+    # print("\n\n\n")
+    # p = get_shortest_path(vertex_0, rando_vert)
+    # print("the shortest path between HUB @ 4001 South 700 East and '" + rando_vert.label + "' is: " + p)
+    # print("\t\tShortest distance between these is {:.1f} miles".format(rando_vert.distance))
 
     # This while loop controls the console menu users interact with
     while False:
