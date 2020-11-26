@@ -13,7 +13,7 @@ import operator
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
 joined = hashtable.HashTable()
-at_station_package_keys = []
+at_station_packages = []
 vertices = {}
 hour = 8
 minute = 0
@@ -35,7 +35,7 @@ def create_package_hashtable(filename):
             key = row[0]
             new_package = [key, row[1], row[2], row[3], row[4], row[5], row[6], row[7]]
             packages.add(key, new_package)
-            at_station_package_keys.append(key)
+            at_station_packages.append(new_package)
 
         csv_file.close()
 
@@ -66,8 +66,8 @@ def create_distance_hashtable(csv_filename):
 # Function selects package(s) with a delivery deadline or special notes
 def get_constrained_packages(p_list):
 
-    # keys is a list of keys to be returned
-    keys = []
+    # list of packages to return
+    packs = []
 
     # loop through each package
     for p in range(1, p_list.count):
@@ -75,9 +75,9 @@ def get_constrained_packages(p_list):
 
         # If the package has a specific delivery deadline or special notes, append its key to keys
         if pack[5] != "EOD" or pack[7] != "":
-            keys.append(pack)
+            packs.append(pack)
 
-    return keys
+    return packs
 
 
 # Function prints constraints for any of the provided packages
@@ -164,7 +164,8 @@ def main():
     create_package_hashtable("wgups_package_file.csv")
 
     # creates a list of keys for packages with delivery deadlines or special delivery notes
-    constrained_keys = get_constrained_packages(packages)
+    constrained_packages = get_constrained_packages(packages)
+    # print_constrained_info(constrained_packages)
 
     # Creating the hashtable for the distances between Cities CSV file
     create_distance_hashtable("wgups_distance_table.csv")
@@ -446,53 +447,93 @@ def main():
 
     assigned_vertexes = [vertex_0]
 
+    print("\n\n\t\t\t\tSTART\n\n")
+
     # First task is to load the trucks
 
+    # put package #9 in Truck 3, the last to leave the depot
+    truck_3.loaded_packages.append(constrained_packages.remove(packages.get(9)))
+
     # Load Truck 2 with the packages that can only go on truck 2
-    for p in constrained_keys:
+    for p in constrained_packages:
         if "truck 2" in p[7]:
-            print("Loading package #{0} to truck 2.\n\t\t\t\taddress: {1}".format(p[0], p[1]))
-            truck_2.loaded_package_keys.append(p[0])
-            at_station_package_keys.remove(p[0])
+            print(p)
+            print("LOAD package #{0} to truck 2.\n\t\t\t\taddress: {1}".format(p[0], p[1]))
+            truck_2.loaded_packages.append(p)
+            at_station_packages.remove(p)
             assigned_vertexes.append(g.get_vertex(p[1]))
             truck_2.miles_driven += g.get_vertex(p[1]).distance
 
+    print("there are {0} assigned vertexes".format(len(assigned_vertexes)))
+
     # if any package's address matches any address truck_2 is already stopping at, load it
-    for n in at_station_package_keys:
-        for k in truck_2.loaded_package_keys:
+    for k in truck_2.loaded_packages:
+
+        # first, remove the package from constrained_packages if it is there, so we do not load it twice
+        if packages.get(k) in constrained_packages:
+            constrained_packages.remove(packages.get(k))
+
+        # search all packages for a matching delivery address
+        for n in at_station_packages:
             pap = packages.get(n)
-            if pap[1] in packages.get(k) and len(truck_2.loaded_package_keys) < max_packages:
-                print("\tEZ pickings! package #{0} \n\t\t\t\taddress: {1}".format(pap[0], pap[1]))
-                assigned_vertexes.append(pap[1])
+
+            # if the delivery address matches, load the package
+            if pap[1] in k:
+                print(pap)
+                truck_2.loaded_packages.append(pap[0])
+                print("\tEZ pickings! package #{0} \taddress: {1} matches loaded pack #{2}".format(pap[0], pap[1], k))
+                vert = g.get_vertex(pap[1])
+                if vert not in assigned_vertexes:
+                    assigned_vertexes.append(vert)
+
+    print()
 
     # loop through every truck to load them as appropriate
     #   trucks_all = [truck_2, truck_1, truck_3]
     for current_truck in trucks_all:
-        print("Trying to load up {0}".format(current_truck.label))
-        print("There are {0} packages remaining at the HUB.".format(len(at_station_package_keys)))
 
-        count = 0
+        # If the truck is empty, add a package to it
+        if len(current_truck.loaded_packages) == 0 and len(at_station_packages) > 0:
+
+            try:
+                pack = constrained_packages.pop(0)
+                print("\t\tPopping constrained_packages[0]. Key={0}".format(pack))
+                t_pack = packages.get(constrained_packages.pop(0)[0])
+            except TypeError:
+                t_pack = packages.get(at_station_packages.pop(0))
+            except:
+                print("something wrong but idk what")
+
+            print(t_pack)
+            print("^^^ t_pack")
+
+            current_truck.loaded_packages.append(t_pack[0])
+            assigned_vertexes.append(g.get_vertex(t_pack[1]))
+
+            print("\n\n\nNEW TRUCK!\nTrying to load up {0}".format(current_truck.label))
+
+        print("{0} now has {1} packages loaded.".format(current_truck.label,
+                                                        len(current_truck.loaded_packages)))
+        print("\tThere are {0} packages remaining at the HUB.\n".format(len(at_station_packages)))
+
         # loop through every package that is loaded
-        for n in current_truck.loaded_package_keys:
+        for n in current_truck.loaded_packages:
 
-            if len(current_truck.loaded_package_keys) >= max_packages:
+            # if the truck is full, go to next truck
+            if len(current_truck.loaded_packages) >= max_packages:
                 print("We got a full load over here :(((((((((((((((((((((((((((((((((((")
                 break
 
-            count += 1
-            print("\n\n\ncount: {0}".format(count))
-            print("package #{0} has already been loaded".format(n))
+            print(packages.get(n))
+            print("^^^ is package #{0} - already loaded".format(n))
+
             pack = packages.get(n)
-
             vert = g.get_vertex(pack[1])
-            print("vert.label=" + vert.label)
 
-            print("package #" + str(n) + " goes to " + vert.label)
-
-            can = 0
+            # test every stop that shares an edge
             for adj in g.adjacency_list[vert]:
-                can += 1
-                print("can={0}".format(can))
+
+                # limiting the tested stops to remaining ones
                 if adj == vert or g.get_vertex(adj.label) in assigned_vertexes:
                     continue
 
@@ -503,41 +544,44 @@ def main():
 
                 if 3.5 >= dist > 0.0:
                     p = packages.get(adj.label)
-                    print("p = packages.get(adj.label)...")
+                    print("\t\t\tI am adding the package printed below...")
                     print(p)
-                    print("p[0]={0} should be the key of the package that I am loading onto {1}".format(p[0],
-                                                                                                        current_truck.label))
-                    current_truck.loaded_package_keys.append(p[0])
-                    at_station_package_keys.remove(p[0])
+
+                    current_truck.loaded_packages.append(p[0])
+                    at_station_packages.remove(p[0])
                     assigned_vertexes.append(g.get_vertex(p[1]))
+
                     print("loading {0} with package #{1}, address={2}, because it is only {3} miles away"
                           .format(current_truck.label, p[0], p[1], dist))
+            print("\t\t{0} now has {1} packages loaded.".format(current_truck.label,
+                                                                len(current_truck.loaded_packages)))
 
-                    print("{0} now has {1} packages loaded.\n".format(current_truck.label,
-                                                                      len(current_truck.loaded_package_keys)))
+        print("at_station_packages count = " + str(len(at_station_packages)))
+        print(at_station_packages)
+        print()
 
-        # possibly reorder the packages in the truck here...
-        # good way to decrease mileage
+    for k in at_station_packages:
+        p = packages.get(k)
+        truck_3.loaded_packages.append(k)
+        assigned_vertexes.append(g.get_vertex(p[1]))
+        print("loading {0} with package #{1}, address={2}"
+              .format(current_truck.label, p[0], p[1]))
 
-        # find packages to add until the truck is at maximum capacity
-        #   break the loop if no acceptable packages are available
+    print("{0} now has {1} packages loaded.".format(truck_3.label,
+                                                    len(truck_3.loaded_packages)))
 
+    cnt = 0
+    for x in assigned_vertexes:
+        print("assigned_vertexes: {0}".format(x.label))
+        cnt += 1
 
+    print("We have assigned {0} vertices.".format(cnt))
 
-        # while len(current_truck.loaded_package_keys) < max_packages or len(at_station_package_keys) <= 0:
+    # possibly reorder the packages in the truck here...
+    # good way to decrease mileage
 
-
-
-
-
-
-
-
-
-
-
-
-
+    # find packages to add until the truck is at maximum capacity
+    #   break the loop if no acceptable packages are available
 
     # This while loop controls the console menu users interact with
     while True:
@@ -601,16 +645,16 @@ def main():
         elif ans == "6":
             """" Prints all packages with constraints (delivery deadline or special notes) """
             # get the keys for all constrained packages
-            for p in constrained_keys:
+            for p in constrained_packages:
                 print(p)
 
-            print("There are " + str(len(constrained_keys)) + " constrained Packages.")
+            print("There are " + str(len(constrained_packages)) + " constrained Packages.")
         elif ans == "7":
             """ Find miles travelled by each truck """
 
             for t in trucks_all:
                 print("{0} has {1} packages, spanning {2:.1f} miles.".format(t.label,
-                                                                         len(t.loaded_package_keys), t.miles_driven))
+                                                                             len(t.loaded_packages), t.miles_driven))
 
             # pseudo-code...
             # for loop through each truck
