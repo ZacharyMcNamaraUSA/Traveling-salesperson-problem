@@ -148,6 +148,7 @@ def dijkstra_shortest_path(g, start_vertex):
 def get_shortest_path(start_vertex, end_vertex):
     # Start from end_vertex and build the path backwards.
     path = ""
+    shortest_distance = start_vertex.distance
     current_vertex = end_vertex
 
     while current_vertex is not start_vertex:
@@ -234,10 +235,15 @@ def main():
     g.add_vertex(vertex_26)
 
     g.add_directed_edge(vertex_26, vertex_26, 0.0)
+
     g.add_undirected_edge(vertex_26, vertex_24, 1.3)
+
     g.add_undirected_edge(vertex_26, vertex_22, 3.1)
+
     g.add_undirected_edge(vertex_26, vertex_20, 4.1)
+
     g.add_undirected_edge(vertex_26, vertex_18, 6.9)
+
     g.add_undirected_edge(vertex_26, vertex_0, 3.6)
     g.set_adjacent_vertexes(vertex_26, [vertex_24, vertex_22, vertex_20, vertex_18, vertex_0])
 
@@ -445,143 +451,140 @@ def main():
 
     dijkstra_shortest_path(g, vertex_0)
 
-    assigned_vertexes = [vertex_0]
-
-    print("\n\n\t\t\t\tSTART\n\n")
+    global at_station_packages
+    print("# of packages at station = {0}.\n\n".format(len(at_station_packages)))
 
     # First task is to load the trucks
 
-    # put package #9 in Truck 3, the last to leave the depot
-    truck_3.loaded_packages.append(constrained_packages.remove(packages.get(9)))
+    # put package #9 in Truck 3, the last truck to leave the depot
+    p9 = packages.get(9)
+    constrained_packages.remove(p9)
+    at_station_packages.remove(p9)
+    truck_3.loaded_packages.append(p9)
 
     # Load Truck 2 with the packages that can only go on truck 2
+    t_constrained_packages = constrained_packages
     for p in constrained_packages:
         if "truck 2" in p[7]:
-            print(p)
-            print("LOAD package #{0} to truck 2.\n\t\t\t\taddress: {1}".format(p[0], p[1]))
-            truck_2.loaded_packages.append(p)
+            t_constrained_packages.remove(p)
             at_station_packages.remove(p)
-            assigned_vertexes.append(g.get_vertex(p[1]))
-            truck_2.miles_driven += g.get_vertex(p[1]).distance
+            truck_2.loaded_packages.append(p)
 
-    print("there are {0} assigned vertexes".format(len(assigned_vertexes)))
+    constrained_packages = t_constrained_packages
 
-    # if any package's address matches any address truck_2 is already stopping at, load it
-    for k in truck_2.loaded_packages:
+    # loop through all packages at the station.
+    # If they have a matching address to any package loaded in truck_2, load them as well.
+    t_at_station_packages = at_station_packages
+    for loaded_p in truck_2.loaded_packages:
+        for p in at_station_packages:
+            if p[1] in loaded_p:
+                # load package p
+                try:
+                    truck_2.loaded_packages.append(p)
+                    t_at_station_packages.remove(p)
+                    constrained_packages.remove(p)
+                except ValueError:
+                    break
+    at_station_packages = t_at_station_packages
 
-        # first, remove the package from constrained_packages if it is there, so we do not load it twice
-        if packages.get(k) in constrained_packages:
-            constrained_packages.remove(packages.get(k))
+    index = 0
+    # load the rest of truck_2, as appropriate
+    while len(truck_2.loaded_packages) < max_packages:
 
-        # search all packages for a matching delivery address
-        for n in at_station_packages:
-            pap = packages.get(n)
+        # add packages, that are not constrained
+        t_pack = at_station_packages[index]
+        # print("\tt_pack={0}".format(t_pack))
+        if t_pack in constrained_packages:
+            index += 1
+            continue
 
-            # if the delivery address matches, load the package
-            if pap[1] in k:
-                print(pap)
-                truck_2.loaded_packages.append(pap[0])
-                print("\tEZ pickings! package #{0} \taddress: {1} matches loaded pack #{2}".format(pap[0], pap[1], k))
-                vert = g.get_vertex(pap[1])
-                if vert not in assigned_vertexes:
-                    assigned_vertexes.append(vert)
+        try:
+            at_station_packages.remove(t_pack)
+            truck_2.loaded_packages.append(t_pack)
+            print("\t\tLOAD Pack#{0} to truck2".format(t_pack[0]))
+        except ValueError:
+            print("\t\tValueError while loading the rest of truck-2")
 
-    print()
+    print("Truck_{0} has {1} packages loaded.\n\n".format(truck_2.label[-1], len(truck_2.loaded_packages)))
 
-    # loop through every truck to load them as appropriate
-    #   trucks_all = [truck_2, truck_1, truck_3]
-    for current_truck in trucks_all:
+    # Truck_3 is the final truck to leave the depot - aka the remainder/misfit route.
+    index = 0
+    t_at_station_packages = at_station_packages
+    t_constrained_packages = constrained_packages.copy()
+    for cp in constrained_packages:
+        if "Delayed" in cp[7]:
+            print("\t\tLoading package #{0}".format(cp[0]))
+            truck_3.loaded_packages.append(cp)
+            at_station_packages.remove(cp)
+            t_constrained_packages.remove(cp)
 
-        # If the truck is empty, add a package to it
-        if len(current_truck.loaded_packages) == 0 and len(at_station_packages) > 0:
+    constrained_packages = list(t_constrained_packages)
 
+    # If any packages at the station are going to same address as packages loaded in truck_3,
+    #       load the packages, if they do not have an early delivery deadline
+    for lp in truck_3.loaded_packages:
+        for p in at_station_packages:
+            if p[5] == "EOD" and p[1] == lp[1] and "Wrong address" not in p[7]:
+                # load the package
+                try:
+                    truck_3.loaded_packages.append(p)
+                    at_station_packages.remove(p)
+                    print("\t\t  "
+                          "LOAD Pack#{0} to truck_3".format(p[0]))
+                except ValueError:
+                    print("ERROR ERROR VALUEERROR")
+                    break
+    print("Truck_{0} has {1} packages loaded.".format(truck_3.number, len(truck_3.loaded_packages)))
+
+
+
+    # Load truck 1 with any remaining time-sensitive deliveries (remaining in constrained_packages)
+    print("\n\nTruck_1 has only {0} packages.".format(len(truck_1.loaded_packages)))
+    for cp in constrained_packages:
+        print("\t\tLoading package #{0}".format(cp[0]))
+        truck_1.loaded_packages.append(cp)
+        at_station_packages.remove(cp)
+
+    # IF any packages share address or are very close to stops assigned, load them here.
+    t_at_station_packages = at_station_packages.copy()
+    for p in at_station_packages:
+        print("\t\tLoading package #{0}".format(p[0]))
+        truck_1.loaded_packages.append(p)
+        t_at_station_packages.remove(p)
+        if len(t_at_station_packages) <= 0 or len(truck_1.loaded_packages) >= max_packages:
+            break
+    at_station_packages = list(t_at_station_packages)
+    print("Truck {0} has {1} packages.".format(truck_1.label[-1], len(truck_1.loaded_packages)))
+
+
+
+    # Load truck 3 with any packages left at station
+    print("\n\nTruck_{0} has {1} packages loaded.".format(truck_3.number, len(truck_3.loaded_packages)))
+    for p in t_at_station_packages:
+        print("\t\tLoading package #{0}".format(p[0]))
+        at_station_packages.remove(p)
+        truck_3.loaded_packages.append(p)
+
+    print("\n\n# of packages remain at station = {0}\n".format(len(at_station_packages)))
+
+
+    print("Truck 2's path...")
+    truck_2_vertices = []
+    for p in truck_1.loaded_packages:
+        truck_2_vertices.append(g.get_vertex(p[1]))
+        truck_2.stops.append(g.get_vertex(p[1]))
+
+    last_vertex = g.get_vertex("4001 South 700 East")
+    for v in sorted(truck_2.stops, key=operator.attrgetter("label")):
+            print("\t\ttruck 2 needs to stop at {0}.".format(v.label))
             try:
-                pack = constrained_packages.pop(0)
-                print("\t\tPopping constrained_packages[0]. Key={0}".format(pack))
-                t_pack = packages.get(constrained_packages.pop(0)[0])
-            except TypeError:
-                t_pack = packages.get(at_station_packages.pop(0))
-            except:
-                print("something wrong but idk what")
-
-            print(t_pack)
-            print("^^^ t_pack")
-
-            current_truck.loaded_packages.append(t_pack[0])
-            assigned_vertexes.append(g.get_vertex(t_pack[1]))
-
-            print("\n\n\nNEW TRUCK!\nTrying to load up {0}".format(current_truck.label))
-
-        print("{0} now has {1} packages loaded.".format(current_truck.label,
-                                                        len(current_truck.loaded_packages)))
-        print("\tThere are {0} packages remaining at the HUB.\n".format(len(at_station_packages)))
-
-        # loop through every package that is loaded
-        for n in current_truck.loaded_packages:
-
-            # if the truck is full, go to next truck
-            if len(current_truck.loaded_packages) >= max_packages:
-                print("We got a full load over here :(((((((((((((((((((((((((((((((((((")
-                break
-
-            print(packages.get(n))
-            print("^^^ is package #{0} - already loaded".format(n))
-
-            pack = packages.get(n)
-            vert = g.get_vertex(pack[1])
-
-            # test every stop that shares an edge
-            for adj in g.adjacency_list[vert]:
-
-                # limiting the tested stops to remaining ones
-                if adj == vert or g.get_vertex(adj.label) in assigned_vertexes:
-                    continue
-
-                print("\t\tadjacent vertex:\t" + adj.label)
-
-                dist = g.edge_weights[(vert, adj)]
-                print("\t\t\t\t\t\t\t\tdistance = {:.1f}".format(dist))
-
-                if 3.5 >= dist > 0.0:
-                    p = packages.get(adj.label)
-                    print("\t\t\tI am adding the package printed below...")
-                    print(p)
-
-                    current_truck.loaded_packages.append(p[0])
-                    at_station_packages.remove(p[0])
-                    assigned_vertexes.append(g.get_vertex(p[1]))
-
-                    print("loading {0} with package #{1}, address={2}, because it is only {3} miles away"
-                          .format(current_truck.label, p[0], p[1], dist))
-            print("\t\t{0} now has {1} packages loaded.".format(current_truck.label,
-                                                                len(current_truck.loaded_packages)))
-
-        print("at_station_packages count = " + str(len(at_station_packages)))
-        print(at_station_packages)
-        print()
-
-    for k in at_station_packages:
-        p = packages.get(k)
-        truck_3.loaded_packages.append(k)
-        assigned_vertexes.append(g.get_vertex(p[1]))
-        print("loading {0} with package #{1}, address={2}"
-              .format(current_truck.label, p[0], p[1]))
-
-    print("{0} now has {1} packages loaded.".format(truck_3.label,
-                                                    len(truck_3.loaded_packages)))
-
-    cnt = 0
-    for x in assigned_vertexes:
-        print("assigned_vertexes: {0}".format(x.label))
-        cnt += 1
-
-    print("We have assigned {0} vertices.".format(cnt))
-
-    # possibly reorder the packages in the truck here...
-    # good way to decrease mileage
-
-    # find packages to add until the truck is at maximum capacity
-    #   break the loop if no acceptable packages are available
+                weight = get_shortest_path(last_vertex, v)
+                print(
+                    "\t\t\t\tshortest path from {0} --> {1} is: \t{2}".format(v.label, last_vertex.label, weight))
+                last_vertex = v
+            except KeyError:
+                print("\t\t\terrors?")
+    print("Truck_2 travelled {0:.1f} miles.".format(truck_2.miles_driven))
 
     # This while loop controls the console menu users interact with
     while True:
@@ -611,6 +614,25 @@ def main():
                     path = get_shortest_path(vertex_0, v)
                     print("\tShortest path from " + vertex_0.label + " to " + v.label + ": (" + path + ").\n" +
                           "\t\tThis traverses {:.1f}".format(v.distance) + " miles!")
+
+        elif ans == "test":
+            print("total packages = 40")
+            print("Truck_{0} has {1} packages loaded.".format("2", len(truck_2.loaded_packages)))
+            for lp in truck_2.loaded_packages:
+                print("\t\tPack #{0} is here.".format(lp))
+
+            print("Truck_{0} has {1} packages loaded.".format(truck_1.number, len(truck_1.loaded_packages)))
+            for lp in truck_1.loaded_packages:
+                print("\t\tPack #{0} is here.".format(lp))
+
+            print("Truck_{0} has {1} packages loaded.".format(truck_3.number, len(truck_3.loaded_packages)))
+            for lp in truck_3.loaded_packages:
+                print("\t\tPack #{0} is here.".format(lp))
+
+            print("\nat_station_packages len = {0}".format(len(at_station_packages)))
+            for a in at_station_packages:
+                print("\t{0}".format(a))
+            print("# of packages at station = {0}\n".format(len(at_station_packages)))
 
         elif ans == "2":
             """ Show snapshot - the current status of each package """
