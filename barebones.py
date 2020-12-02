@@ -2,7 +2,9 @@
 
 import copy
 import csv
+import random
 from cmath import inf
+from typing import List, Any
 
 import package
 import truck
@@ -13,7 +15,7 @@ import operator
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
 joined = hashtable.HashTable()
-at_station_packages = []
+at_station_packages: package = []
 vertices = {}
 hour = 8
 minute = 0
@@ -23,6 +25,7 @@ truck_3 = truck.Truck("Truck 3")
 trucks_all = [truck_2, truck_1, truck_3]
 max_packages = 16
 speed = 18
+hub_address = "4001 South 700 East"
 
 
 # Function create_package_hashtable populates the custom hashtable data structure for package info
@@ -174,9 +177,9 @@ def main():
     create_distance_hashtable("wgups_distance_table.csv")
 
     for n in range(1, packages.count + 1):
-        pack = packages.get(n)
-        stop = distances.get(pack[1])[2]
-        packages.add(stop, pack)
+        testing_index = packages.get(n)
+        stop = distances.get(testing_index[1])[2]
+        packages.add(stop, testing_index)
 
     g = Graph()
 
@@ -251,41 +254,46 @@ def main():
     truck_3.loaded_packages.append(p9)
 
     # Load Truck 2 with the packages that can only go on truck 2
-    t_constrained_packages = constrained_packages
+    t_constrained_packages = constrained_packages.copy()
     for p in constrained_packages:
         if "truck 2" in p[7]:
             t_constrained_packages.remove(p)
             at_station_packages.remove(p)
             truck_2.loaded_packages.append(p)
             truck_2.stops.append(g.get_vertex(p[1]))
+            print("\tadding package={0}".format(p))
 
-    constrained_packages = t_constrained_packages
-
+    constrained_packages = t_constrained_packages.copy()
     # loop through all packages at the station.
     # If they have a matching address to any package loaded in truck_2, load them as well.
-    t_at_station_packages = at_station_packages
+    print("len(truck_2.loaded_packages)={0}".format(len(truck_2.loaded_packages)))
+    t_at_station_packages = at_station_packages.copy()
+    t_loaded_packages = truck_2.loaded_packages.copy()
     for loaded_p in truck_2.loaded_packages:
+        # print("loaded_p={0}".format(loaded_p))
         for p in at_station_packages:
+            # print("\tloaded_p, p[0] = ({0}, {1}".format(loaded_p, p[0]))
             if p[1] in loaded_p:
                 # load package p
                 try:
-                    truck_2.loaded_packages.append(p)
+                    t_loaded_packages.append(p)
                     t_at_station_packages.remove(p)
                     constrained_packages.remove(p)
                     truck_2.stops.append(g.get_vertex(p[1]))
                 except ValueError:
                     break
-    at_station_packages = t_at_station_packages
+    at_station_packages = t_at_station_packages.copy()
+    truck_2.loaded_packages = t_loaded_packages.copy()
 
-    index = 0
+    i = 0
     # load the rest of truck_2, as appropriate
     while len(truck_2.loaded_packages) < max_packages:
 
         # add packages, that are not constrained
-        t_pack = at_station_packages[index]
+        t_pack = at_station_packages[i]
         # print("\tt_pack={0}".format(t_pack))
         if t_pack in constrained_packages:
-            index += 1
+            i += 1
             continue
 
         try:
@@ -299,8 +307,7 @@ def main():
     print("Truck_{0} has {1} packages loaded.\n\n".format(truck_2.label[-1], len(truck_2.loaded_packages)))
 
     # Truck_3 is the final truck to leave the depot - aka the remainder/misfit route.
-    index = 0
-    t_at_station_packages = at_station_packages
+    i = 0
     t_constrained_packages = constrained_packages.copy()
     for cp in constrained_packages:
         if "Delayed" in cp[7]:
@@ -325,7 +332,7 @@ def main():
                     print("\t\t  "
                           "LOAD Pack#{0} to truck_3".format(p[0]))
                 except ValueError:
-                    print("ERROR ERROR VALUEERROR")
+                    print("ERROR ERROR VALUE ERROR while loading truck_3")
                     break
     print("Truck_{0} has {1} packages loaded.".format(truck_3.number, len(truck_3.loaded_packages)))
 
@@ -355,10 +362,9 @@ def main():
         at_station_packages.remove(p)
         truck_3.loaded_packages.append(p)
         truck_3.stops.append(g.get_vertex(p[1]))
+    print("Truck {0} has {1} packages.".format(truck_3.label[-1], len(truck_3.loaded_packages)))
 
     print("\n\n# of packages remain at station = {0}\n".format(len(at_station_packages)))
-
-
 
     g.add_directed_edge(vertex_26, vertex_26, 0.0)
     g.add_undirected_edge(vertex_26, vertex_25, 8.3)
@@ -387,7 +393,6 @@ def main():
     g.add_undirected_edge(vertex_26, vertex_2, 7.4)
     g.add_undirected_edge(vertex_26, vertex_1, 13.0)
     g.add_undirected_edge(vertex_26, vertex_0, 3.6)
-    g.set_adjacent_vertexes(vertex_26, [vertex_24, vertex_22, vertex_20, vertex_18, vertex_0])
 
     g.add_directed_edge(vertex_25, vertex_25, 0.0)
     g.add_undirected_edge(vertex_25, vertex_0, 5.0)
@@ -415,8 +420,6 @@ def main():
     g.add_undirected_edge(vertex_25, vertex_22, 6.8)
     g.add_undirected_edge(vertex_25, vertex_23, 10.6)
     g.add_undirected_edge(vertex_25, vertex_24, 7.0)
-    g.set_adjacent_vertexes(vertex_25, [vertex_0, vertex_2, vertex_5, vertex_8, vertex_9,
-                                        vertex_11, vertex_12, vertex_19, vertex_20])
 
     g.add_directed_edge(vertex_24, vertex_24, 0.0)
     g.add_undirected_edge(vertex_24, vertex_0, 2.4)
@@ -437,6 +440,8 @@ def main():
     g.add_undirected_edge(vertex_24, vertex_15, 5.9)
     g.add_undirected_edge(vertex_24, vertex_16, 11.1)
     g.add_undirected_edge(vertex_24, vertex_17, 4.0)
+    g.add_undirected_edge(vertex_24, vertex_18, 5.6)
+    g.add_undirected_edge(vertex_24, vertex_19, 8.5)
     g.add_undirected_edge(vertex_24, vertex_20, 2.8)
     g.add_undirected_edge(vertex_24, vertex_21, 3.4)
     g.add_undirected_edge(vertex_24, vertex_22, 1.7)
@@ -444,15 +449,15 @@ def main():
 
     g.add_directed_edge(vertex_23, vertex_23, 0.0)
     g.add_undirected_edge(vertex_23, vertex_0, 6.4)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
+    g.add_undirected_edge(vertex_23, vertex_1, 6.9)
+    g.add_undirected_edge(vertex_23, vertex_2, 9.7)
     g.add_undirected_edge(vertex_23, vertex_3, 0.6)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
+    g.add_undirected_edge(vertex_23, vertex_4, 6.0)
+    g.add_undirected_edge(vertex_23, vertex_5, 9.0)
+    g.add_undirected_edge(vertex_23, vertex_6, 8.2)
     g.add_undirected_edge(vertex_23, vertex_7, 4.2)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
-    g.add_undirected_edge(vertex_23, vertex_0, 6.4)
+    g.add_undirected_edge(vertex_23, vertex_8, 11.5)
+    g.add_undirected_edge(vertex_23, vertex_9, 7.8)
     g.add_undirected_edge(vertex_23, vertex_10, 0.4)
     g.add_undirected_edge(vertex_23, vertex_11, 6.9)
     g.add_undirected_edge(vertex_23, vertex_12, 11.5)
@@ -559,7 +564,9 @@ def main():
 
     g.add_directed_edge(vertex_18, vertex_18, 0.0)
     g.add_undirected_edge(vertex_18, vertex_0, 3.6)
+    g.add_undirected_edge(vertex_18, vertex_1, 5.0)
     g.add_undirected_edge(vertex_18, vertex_2, 3.6)
+    g.add_undirected_edge(vertex_18, vertex_3, 6.0)
     g.add_undirected_edge(vertex_18, vertex_4, 1.7)
     g.add_undirected_edge(vertex_18, vertex_5, 1.1)
     g.add_undirected_edge(vertex_18, vertex_6, 6.6)
@@ -718,6 +725,7 @@ def main():
     g.add_undirected_edge(vertex_8, vertex_4, 7.5)
     g.add_undirected_edge(vertex_8, vertex_5, 4.5)
     g.add_undirected_edge(vertex_8, vertex_6, 4.2)
+    g.add_undirected_edge(vertex_8, vertex_7, 7.7)
 
     g.add_directed_edge(vertex_7, vertex_7, 0.0)
     g.add_undirected_edge(vertex_7, vertex_0, 8.6)
@@ -738,11 +746,14 @@ def main():
 
     g.add_directed_edge(vertex_5, vertex_5, 0.0)
     g.add_undirected_edge(vertex_5, vertex_0, 3.5)
+    g.add_undirected_edge(vertex_5, vertex_1, 4.8)
     g.add_undirected_edge(vertex_5, vertex_2, 2.8)
+    g.add_undirected_edge(vertex_5, vertex_3, 6.9)
     g.add_undirected_edge(vertex_5, vertex_4, 1.9)
 
     g.add_directed_edge(vertex_4, vertex_4, 0.0)
     g.add_undirected_edge(vertex_4, vertex_0, 2.2)
+    g.add_undirected_edge(vertex_4, vertex_1, 6.0)
     g.add_undirected_edge(vertex_4, vertex_2, 4.4)
     g.add_undirected_edge(vertex_4, vertex_3, 5.6)
 
@@ -764,28 +775,91 @@ def main():
                                        vertex_14, vertex_15, vertex_16, vertex_17, vertex_18, vertex_19, vertex_20,
                                        vertex_21, vertex_22, vertex_23, vertex_24, vertex_25, vertex_26])
 
-    dijkstra_shortest_path(g, vertex_0)
-
-    last_vertex = g.get_vertex("4001 South 700 East")
-    total_miles = 0.0
-
+    # find the closest neighbor total distance
     for current_truck in trucks_all:
-        for v in sorted(current_truck.stops, key=operator.attrgetter("distance")):
-            print("\t\ttruck {0} needs to stop at {1}".format(current_truck.label[-1], current_truck.label))
-            print("\t\t\t\tv... label={0}, distance={1}".format(v.label, v.distance))
-            print("\t\t\t\tfrom {0} --> {1}, distance={2}".format(last_vertex.label, v.label, v.distance))
+        print("Truck {0}.".format(current_truck.label[-1]))
 
-            try:
-                weight = g.edge_weights[(last_vertex, v)]
-                print("\t\t\t\tshortest path from {0} --> {1} is: \t{2}".format(last_vertex.label, v.label, weight))
-                current_truck.miles_driven += weight
-                last_vertex = v
-            except KeyError:
-                print("\t\t\terrors?")
-        print("{0} travelled {1:.1f} miles.".format(current_truck.label, current_truck.miles_driven))
-        total_miles += current_truck.miles_driven
+        # if any packages share an address, make sure they are indexed sequentially
+        #       scan the remaining packages for matching address.
+        #       find one? Swap it with the ind+1
 
-    print("The trucks travelled a total of {0:.1f} miles.".format(total_miles))
+        # Arrange the packages in the list current_truck.loaded_packages such that
+        #   the truck travels to its nearest neighbor next
+        #           For every undelivered package in the truck,
+        #           compare the edge weight of all other vertices (aka adjacent)
+        #               Track the index of the package with the lowest edge weight.
+        #               This package should be delivered next. (Nearest Neighbor)
+        nearest_neighbor_distance = inf
+        next_package_index = None
+        temp_package_counter = 0
+        # loop through all loaded_packages
+        print("\tTruck {0} neighbor...".format(current_truck.label[-1]))
+        for current_package_index in range(len(current_truck.loaded_packages)):
+            print("\tcurrent_package_index={0}, package #{1}".format(current_package_index,
+                                                             current_truck.loaded_packages[current_package_index][0]))
+            # loop through all packages that have not been tested/adjusted yet.
+            for testing_index in range(current_package_index + 1, len(current_truck.loaded_packages)):
+                print("\t\ttesting_index={0}, package #{1}".format(testing_index,
+                                                                   current_truck.loaded_packages[testing_index][0]))
+                edge = g.find_distance(g.get_vertex(current_truck.location_address),
+                                       g.get_vertex(current_truck.loaded_packages[testing_index][1]))
+                if edge == 0.0:
+                    print("\t\t\tNEW! SAME ADDRESS! Package #{0}".format(
+                                    current_truck.loaded_packages[testing_index][0]))
+                    nearest_neighbor_distance = edge
+                    next_package_index = testing_index
+
+                elif edge < nearest_neighbor_distance:
+                    print("\t\t\tNEW CLOSEST PACKAGE! Package #{0}".format(current_truck.loaded_packages[testing_index][0]))
+                    nearest_neighbor_distance = edge
+                    next_package_index = testing_index
+                # print("\t\t\t\tfrom {0} ----> {1} is:\t\t{2:.1f} miles".format(current_truck.location_address,
+                #                                                        current_truck.loaded_packages[testing_index][1],
+                #                                                        edge))
+                print("\t\t\t\t\t\tNext is package #{0} @{1}, {2:.1f} miles away.".format(
+                                        current_truck.loaded_packages[next_package_index][0],
+                                        current_truck.loaded_packages[next_package_index][1],
+                                        nearest_neighbor_distance))
+
+            print("\t\tSWAP index [{0}]-pack#{1} <---> index [{2}]=pack#{3}".format(current_package_index,
+                                                                current_truck.loaded_packages[current_package_index][0],
+                                                                next_package_index,
+                                                                current_truck.loaded_packages[next_package_index][0]))
+            # Swap packages so the next Nearest Neighbor is before the yet-unsorted-packages
+            current_truck.loaded_packages[current_package_index], current_truck.loaded_packages[next_package_index] = \
+                current_truck.loaded_packages[next_package_index], current_truck.loaded_packages[current_package_index]
+
+            # 'move' the truck to the new location.
+            current_truck.miles_driven += nearest_neighbor_distance
+            current_truck.location_address = current_truck.loaded_packages[next_package_index][1]
+
+            temp_package_counter += 1
+            print("\t\tOKAY! PACKAGE 'DELIVERED' to {0}".format(current_truck.location_address))
+            print("\t\t\t{0}/{1} packages delivered.".format(temp_package_counter,
+                                                             len(current_truck.loaded_packages)))
+            print("\t\t\t{0:.1f} miles travelled.".format(current_truck.miles_driven))
+            nearest_neighbor_distance = inf
+
+        trip_home_distance = 0.0
+        trip_home_distance = g.find_distance(g.get_vertex(current_truck.location_address),
+                                             g.get_vertex(hub_address))
+        print("\t\ttrip home is {0:.1f} miles... from {1}-->{2}".format(trip_home_distance,
+                                                                        current_truck.location_address, hub_address))
+
+        print("Truck {0} travelled {1:.1f} miles to deliver {2} packages.".format(current_truck.label[-1],
+                                                                                  current_truck.miles_driven,
+                                                                                  len(current_truck.loaded_packages)))
+
+        print("\t\t{0} --> {1}".format(hub_address, current_truck.loaded_packages[0][1]))
+        stop_num = 1
+        for i in range(0, len(current_truck.loaded_packages) - 1):
+            print("\t\t{0} --> {1} |\t\t{2:.1f} miles".format(current_truck.loaded_packages[i][1],
+                                           current_truck.loaded_packages[i+1][1],
+                                           g.find_distance(g.get_vertex(current_truck.loaded_packages[i][1]),
+                                                           g.get_vertex(current_truck.loaded_packages[i+1][1]))))
+
+    # END for current_truck in truck_all
+
 
 
     # This while loop controls the console menu users interact with
@@ -877,7 +951,7 @@ def main():
             """ Find miles travelled by each truck """
 
             for t in trucks_all:
-                print("{0} has {1} packages, spanning {2:.1f} miles.".format(t.label,
+                print("Truck {0} delivered {1} packages, spanning {2:.1f} miles.".format(t.label[-1],
                                                                              len(t.loaded_packages), t.miles_driven))
 
             # pseudo-code...
@@ -896,8 +970,3 @@ def main():
 # Main for this Project
 if __name__ == "__main__":
     main()
-
-
-
-
-
