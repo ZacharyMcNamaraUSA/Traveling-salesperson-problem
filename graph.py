@@ -22,9 +22,11 @@ class Graph:
     def __init__(self, vert_list=[]):
         self.adjacency_list = {}
         self.edge_weights = {}
+        self.vertex_list = []
 
     def add_vertex(self, new_vertex):
         self.adjacency_list[new_vertex] = []
+        self.vertex_list.append(new_vertex)
 
     def add_directed_edge(self, from_vertex, to_vertex, weight=1.0):
         self.edge_weights[(from_vertex, to_vertex)] = weight
@@ -38,6 +40,13 @@ class Graph:
 
     def set_adjacent_vertexes(self, current_vertex, adjacents=[]):
         self.adjacency_list[current_vertex] = adjacents
+
+    def get_vertex(self, label):
+        for v in self.vertex_list:
+            if v.label == label:
+                return v
+
+        return None
 
 
 
