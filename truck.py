@@ -2,7 +2,6 @@
 
 from collections import deque
 import datetime
-import time
 
 
 class Truck:
@@ -15,6 +14,7 @@ class Truck:
         self.delivered_packages = []
         self.time_tracker = datetime.datetime(2000, 1, 1, 8, 0, 0)
         self.location_address = "4001 South 700 East"
+        self.max_packages = 16
 
     @property
     def packages_list(self):
@@ -47,6 +47,25 @@ class Truck:
     @delivery_order.deleter
     def delivery_order(self):
         del self._delivery_order
+
+    @property
+    def time_tracker(self):
+        return self._time_tracker
+
+    @time_tracker.setter
+    def time_tracker(self, value):
+        self._time_tracker = value
+
+    @property
+    def max_packages(self):
+        return self._max_packages
+
+    @max_packages.setter
+    def max_packages(self, value):
+        self._max_packages = value
+
+    def time_tracker_reset(self):
+        self._time_tracker = datetime.datetime(2000, 1, 1, 8, 0, 0)
 
     def load_package(self, package):
         max_index = len(package) - 1
