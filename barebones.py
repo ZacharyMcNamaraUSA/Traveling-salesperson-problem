@@ -3,18 +3,14 @@
 import csv
 from cmath import inf
 from collections import deque
-from datetime import datetime, timedelta, tzinfo
-import time
-
+from datetime import datetime, timedelta
 import package
 import truck
 import hashtable
 from graph import Graph, Vertex
-import operator
 
 packages = hashtable.HashTable()
 distances = hashtable.HashTable()
-joined = hashtable.HashTable()
 global at_station_packages
 at_station_packages: package = []
 vertices = {}
@@ -42,14 +38,10 @@ def create_distance_hashtable(csv_filename):
     with open(csv_filename) as distance_csv:
         read_csv = csv.reader(distance_csv, delimiter=',')
 
-        stop_count = 0
         for row in read_csv:  # For every row in CSV file
             key = row[1]
 
-            # put the stop_count number in front
-            row.insert(0, str(stop_count))
             distances.add(key, row)
-            stop_count += 1
 
         distance_csv.close()
 
@@ -60,119 +52,46 @@ def get_constrained_packages(p_list):
     packs = []
 
     # loop through each package
-    for p in range(1, p_list.count + 1):
-        pack = packages.get(p)
+    for constrained_index in range(1, p_list.count + 1):
+        constrained_package = packages.get(constrained_index)
 
         # If the package has a specific delivery deadline or special notes, append its key to keys
-        if pack[5] != "EOD" or pack[7] != "":
-            packs.append(pack)
+        if constrained_package[5] != "EOD" or constrained_package[7] != "":
+            packs.append(constrained_package)
 
     return packs
 
 
-# Function prints constraints for any of the provided packs
-def print_constrained_info(constrained_list):
-    for pack in constrained_list:
-        message = ""
-
-        # This if condition reruns the loop if the Package pack is not constrained.
-        #       Therefore, if the condition does not stop the loop, pack is a constrained package
-        #       The condition here is to ensure only specially constrained packs are returned
-        if pack[5] == "EOD" and pack[7] == "":
-            continue
-
-        message += "package " + pack[0] + "\n"
-
-        # IF the Package must be delivered by a specific time
-        if pack[5] != "EOD":
-            message += "\t\tDelivery deadline is " + pack[5] + ".\n"
-
-        # IF the Package has special instructions
-        if pack[7] != "":
-            message += "\t\tInstructions: " + pack[0] + ": " + pack[7] + ".\n"
-
-        print(message)
-
-
-def dijkstra_shortest_path(g, start_vertex):
-    # Put all vertices in an unvisited queue.
-    unvisited_queue = []
-    for current_vertex in g.adjacency_list:
-        unvisited_queue.append(current_vertex)
-        current_vertex.distance = inf
-    #     print("appending vertex'" + current_vertex.label + "' to unvisited_queue!")
-    # print("len(unvisited_queue)=" + str(len(unvisited_queue)))
-
-    # Start_vertex has a distance of 0 from itself
-    start_vertex.distance = 0
-
-    # One vertex is removed with each iteration; repeat until the list is
-    # empty.
-    while len(unvisited_queue) > 0:
-
-        # Visit vertex with minimum distance from start_vertex
-        smallest_index = 0
-        for i in range(1, len(unvisited_queue)):
-            if unvisited_queue[i].distance < unvisited_queue[smallest_index].distance:
-                smallest_index = i
-
-        current_vertex = unvisited_queue.pop(smallest_index)
-
-        # Check potential path lengths from the current vertex to all adjacent vertices.
-        for adj_vertex in g.adjacency_list[current_vertex]:
-
-            try:
-                edge_weight = g.edge_weights[(current_vertex, adj_vertex)]
-                alternative_path_distance = current_vertex.distance + edge_weight
-            except KeyError:
-                print("PROBLEM! No edge between curr_v=" + current_vertex.label + " and adj_v=" + adj_vertex.label)
-                continue
-
-            # If shorter path from start_vertex to adj_vertex is found,
-            # update adj_vertex's distance and predecessor
-            if alternative_path_distance < adj_vertex.distance:
-                adj_vertex.distance = alternative_path_distance
-                adj_vertex.pred_vertex = current_vertex
-
-
-def get_shortest_path(start_vertex, end_vertex):
-    # Start from end_vertex and build the path backwards.
-    path = ""
-    shortest_distance = start_vertex.distance
-    current_vertex = end_vertex
-
-    while current_vertex is not start_vertex:
-        print("current_vertex.label={0}".format(current_vertex.label))
-        path = " -> " + str(current_vertex.label) + " is {:.1f}".format(
-            current_vertex.distance) + " miles_total_all_vehicles" + path
-        current_vertex = current_vertex.pred_vertex
-
-    path = start_vertex.label + path
-    return path
-
-
+# Function returns a List of packages with the same address as target_address
+# if no matching packages are found, return None
 def packages_to_same_address(target_address, list_of_packages):
-    packs = []
-    for p in list_of_packages:
-        if p[1] == target_address:
-            packs.append(p)
-    if len(packs) == 0:
+    same_address_packs = []
+    for same_address_index in range(1, len(list_of_packages) + 1):
+        test_package = list_of_packages[same_address_index - 1]
+        if list_of_packages[same_address_index - 1][1] == target_address:
+            same_address_packs.append(list_of_packages[same_address_index - 1])
+    if len(same_address_packs) == 0:
         return None
-    return packs
+    return same_address_packs
 
 
+# Function determines the package needing to be delivered next using Nearest Neighbor algorithm
 def find_nearest_neighbor(g, start_address, list_of_packages):
     smallest_distance = inf
     nearest_neighbor = None
-    for p in list_of_packages:
-        dist = g.find_distance(g.get_vertex(p[1]), g.get_vertex(start_address))
+    # loop through all packages in list_of_packages. Track the closest vertex's package
+    for nearest_neighbor_index in range(1, len(list_of_packages) + 1):
+        nearest_package = list_of_packages[nearest_neighbor_index - 1]
+        dist = g.find_distance(g.get_vertex(nearest_package[1]), g.get_vertex(start_address))
+        # if dist < smallest_distance, a new nearest neighbor has been found
         if dist < smallest_distance:
-            # new nearest neighbor!!!
             smallest_distance = dist
-            nearest_neighbor = p
+            nearest_neighbor = nearest_package
     return nearest_neighbor
 
 
+# Function determines the package delivery order for car and its list_of_packages
+# Function uses find_nearest_neighbor function to determine which neighbor is correct.
 def path_order_nearest_neighbor(t_graph, car, list_of_packages):
     delivery_order = []
     # start at the current location of the car
@@ -186,17 +105,13 @@ def path_order_nearest_neighbor(t_graph, car, list_of_packages):
         delivery_order.append(t_pack)
         t_list_of_packages.remove(t_pack)
 
-        # if any packages have the same address as the package we just loaded, load them as well. 
-        for p in t_list_of_packages:
-            if p[1] == target_address:
-                delivery_order.append(p)
-                t_list_of_packages.remove(p)
-
         current_address = target_address
 
     return delivery_order
 
 
+# Function creates all necessary vertices and their (un)directed edges
+# for scalability, this function will need to be automated
 def populate_graph(t_graph):
     vertex_0 = Vertex("4001 South 700 East")
     vertex_1 = Vertex("1060 Dalton Ave S")
@@ -667,12 +582,17 @@ def populate_graph(t_graph):
 
 # Main for this Project
 if __name__ == "__main__":
+    # start_time is used to track execution time of the program
     start_time = datetime.now()
+    # declare and initialize all trucks then add them to List vehicles
     truck_1 = truck.Truck("TRUCK 1")
     truck_2 = truck.Truck("TRUCK 2")
     truck_3 = truck.Truck("TRUCK 3")
     vehicles = [truck_1, truck_2, truck_3]
-    max_packages = 16
+    # given parameters state trucks may carry 16 max_packages and always move at speed of 18
+    truck_1.max_packages = 16
+    truck_2.max_packages = 16
+    truck_3.max_packages = 16
     speed = 18
 
     # Creating the hashtable for the Packages CSV file
@@ -683,46 +603,45 @@ if __name__ == "__main__":
     # Creating the hashtable for the distances between Cities CSV file
     create_distance_hashtable("wgups_distance_table.csv")
 
-    # create the graph object to contain vertices
+    # create the graph object to contain vertices & edges
     g = Graph()
 
     # creates the vertices and their weighted adjacent edges
     populate_graph(g)
 
-    # creates a list of keys for packs with delivery deadlines or special delivery notes
-    constrained_packages = get_constrained_packages(packages)
+    # creates a list of packs with delivery deadlines or special delivery notes
+    constrained_packages = list(get_constrained_packages(packages))
+
     packages_still_at_the_station = at_station_packages.copy()
 
-    # load the trucks
-    # print("# of packs at station = {0}.\n\n".format(len(at_station_packages)))
-
     # Sort packages with special constraints, i.e. required truck, delays, delivery deadline
-    t_packages_still_at_the_station = packages_still_at_the_station.copy()
-    for p in packages_still_at_the_station:
+    for package_index in range(1, packages.count + 1):
         selected_truck = None
+        testing_package = packages.get(package_index)
 
         # TRUCK 1: assign the 'group' of packages that must be delivered together to truck_1
-        if "be delivered with" in p[7] or p[0] == "13":
+        # SCALING NOTE: portion is 'hard-coded' to function for this data set only. edit for expansion.
+        if "be delivered with" in testing_package[7]:
             selected_truck = truck_1
 
-        # TRUCK 3: assign the packages that are not ready to load to a truck that is not going out first (truck_3)
-        elif "Delayed" in p[7] or "Wrong address" in p[7]:
-            p[8] = "Delayed. Assign to " + truck_3.label
-            t_packages_still_at_the_station.remove(p)
-            truck_3.load_package(p)
-            constrained_packages.remove(p)
+        # TRUCK 3: assign the packages that are not ready to load to truck_3 - a truck that is not going out first
+        elif "Delayed" in testing_package[7] or "Wrong address" in testing_package[7]:
+            testing_package[8] = "Delayed. Assign to " + truck_3.label
+            packages_still_at_the_station.remove(testing_package)
+            truck_3.load_package(testing_package)
+            constrained_packages.remove(testing_package)
             continue
 
         # TRUCK 2: load with the packs that can only go on truck_2
-        elif "truck 2" in p[7]:
+        elif "truck 2" in testing_package[7] or testing_package[0] == "13":
             selected_truck = truck_2
         try:
-            p[8] = "Loaded in " + selected_truck.label
-            t_packages_still_at_the_station.remove(p)
-            selected_truck.load_package(p)
-            constrained_packages.remove(p)
+            testing_package[8] = "Loaded in " + selected_truck.label
+            packages_still_at_the_station.remove(testing_package)
+            selected_truck.load_package(testing_package)
+            constrained_packages.remove(testing_package)
         except AttributeError:
-            # an AttributeError occurs here if "selected_truck" is only initialized at declaration (to None)
+            # an AttributeError occurs here if "selected_truck" is not initialized after its declaration (to None)
             # This does not impact execution.
             pass
         except ValueError:
@@ -730,61 +649,57 @@ if __name__ == "__main__":
             # This does not impact execution.
             pass
 
-    packages_still_at_the_station = t_packages_still_at_the_station.copy()
-
-    # loop through all packs at the station.
-    # If they have a matching address to any package loaded in truck_2, load them as well.
-    for loaded_p in truck_2.packages_list:
-
-        same_destination_package_list = packages_to_same_address(loaded_p[1], packages_still_at_the_station)
-
-        if same_destination_package_list is not None:
-            for p in same_destination_package_list:
-                try:
-                    truck_2.load_package(p)
-                    packages_still_at_the_station.remove(p)
-                    constrained_packages.remove(p)
-                except ValueError:
-                    # a ValueError occurs when the package is not in the list "constrained_packages".
-                    # This does not impact execution.
-                    pass
-
     # TRUCK 1: load packages with a delivery deadline to truck_1
     # - DELIVERY DEADLINE LOADING - DELIVERY DEADLINE LOADING - DELIVERY DEADLINE LOADING - DELIVERY DEADLINE LOADING -
     for delivery_deadline_package in constrained_packages:
-        # if the package has no deadline, is delayed, or already loaded, skip to the next package
+        # if the package has no deadline, is delayed, or already loaded, continue on to the next package
         if (delivery_deadline_package[5] == "EOD") or ("Delayed" in delivery_deadline_package[7]) or \
                 (delivery_deadline_package not in packages_still_at_the_station):
             continue
-        # stop loading if the truck is full
-        if len(truck_1.packages_list) >= max_packages:
+        # break loading if the truck is full, otherwise load delivery_deadline_package
+        if len(truck_1.packages_list) >= truck_1.max_packages:
             break
-            truck_1.load_package(delivery_deadline_package)
-            packages_still_at_the_station.remove(delivery_deadline_package)
 
         # if other packages at the station are going to the same address, load them as well.
         address = delivery_deadline_package[1]
-        for p in packages_still_at_the_station:
+        for testing_package in packages_still_at_the_station:
             # break if the truck is full
-            if len(truck_1.packages_list) >= max_packages:
+            if len(truck_1.packages_list) >= truck_1.max_packages:
                 break
-            if p[1] == address:
+            if testing_package[1] == address:
                 try:
-                    truck_1.load_package(p)
-                    packages_still_at_the_station.remove(p)
+                    truck_1.load_package(testing_package)
+                    packages_still_at_the_station.remove(testing_package)
                 except ValueError:
                     pass
 
-    # Now that Truck_1 is fully loaded, let's decide the order to deliver the packages in using Nearest Neighbor
+    t_packages_still_at_the_station = packages_still_at_the_station.copy()
+    # compare truck_2.packages_list with all packs at the station packages_still_at_the_station
+    # If they have a matching address to any package loaded in truck_2, load them as well.
+    for loaded_p in truck_2.packages_list:
+        for testing_package in t_packages_still_at_the_station:
+            # if loaded_p's address does not match
+            if testing_package[1] != loaded_p[1]:
+                continue
+            try:
+                truck_2.load_package(testing_package)
+                t_packages_still_at_the_station.remove(testing_package)
+                constrained_packages.remove(testing_package)
+            except ValueError:
+                # a ValueError occurs when the package is not in the list "constrained_packages".
+                # This does not impact execution.
+                pass
+
+    # Now that Truck_1 is fully loaded, reorder the loaded packages using path_order_nearest_neighbor
     truck_1.location_address = hub_address
     path = path_order_nearest_neighbor(g, truck_1, truck_1.packages_list)
     truck_1.packages_list = path.copy()
     truck_1.delivery_order = deque(truck_1.packages_list)
     truck_1.location_address = hub_address
 
-    # Finish loading Truck 2 with the nearest neighbor's package (of the unloaded packages)
-    t_packages_still_at_the_station = packages_still_at_the_station.copy()
-    while len(truck_2.packages_list) < max_packages:
+    # Finish loading Truck 2 with the next-best not yet loaded package using path_order_nearest_neighbor
+    packages_still_at_the_station = t_packages_still_at_the_station.copy()
+    while len(truck_2.packages_list) < truck_2.max_packages:
         # find nearest neighbor
         pack = find_nearest_neighbor(g, truck_2.location_address, t_packages_still_at_the_station)
         address = pack[1]
@@ -794,47 +709,32 @@ if __name__ == "__main__":
         truck_2.location_address = address
         # remove that package from the list we still need to sort
         t_packages_still_at_the_station.remove(pack)
+    # update List packages_still_at_the_station to reflect changes made loading truck_2
     packages_still_at_the_station = t_packages_still_at_the_station.copy()
 
-    # hiding_packages_list = list(truck_2.packages_list)
-    # force_deliver_first = packages.get(18).copy()
-    # hiding_packages_list.remove(force_deliver_first)
-    # truck_2.location_address = force_deliver_first[1]
-    # hardcoding_truck_2_path = path_order_nearest_neighbor(g, truck_2, hiding_packages_list)
-    # hardcoding_truck_2_path.insert(0, force_deliver_first)
-    # truck_2.delivery_order = deque(hardcoding_truck_2_path)
-    # truck_2.packages_list = hardcoding_truck_2_path.copy()
-    # truck_2.location_address = hub_address
-
-    # # Reset truck_2 and reorder the loaded packages using Nearest Neighbor
+    # Reset truck_2 and reorder the loaded packages using path_order_nearest_neighbor
     truck_2.location_address = hub_address
     path = path_order_nearest_neighbor(g, truck_2, truck_2.packages_list)
     truck_2.delivery_order = deque(path)
     truck_2.packages_list = path.copy()
     truck_2.location_address = hub_address
 
-    # Truck_3 is the final truck to leave the depot - aka the remainder/misfit route.
+    # Truck_3 is the final truck to leave the depot - load it with any remaining packages
     t_packages_at_station = packages_still_at_the_station.copy()
     for dp in t_packages_at_station:
         truck_3.load_package(dp)
         packages_still_at_the_station.remove(dp)
 
+    # Reset truck_3 and reorder the loaded packages using path_order_nearest_neighbor
     truck_3.location_address = hub_address
     path = path_order_nearest_neighbor(g, truck_3, truck_3.packages_list)
     truck_3.delivery_order = deque(path)
     truck_3.packages_list = path.copy()
     truck_3.location_address = hub_address
 
-    if len(packages_still_at_the_station) == 0:
-        print("Every package has been loaded!\n")
-
-    truck_1.time_tracker = datetime(2000, 1, 1, 8, 0, 0)
-    # truck_2.time_tracker = datetime(2000, 1, 1, 9, 0, 0)
-    # truck_3.time_tracker = whenever_a_truck_returns
-
+    # loop through all vehicles to calculate each package's delivery time using current_truck.time_tracker
     for current_truck in vehicles:
-        print("\n{0} can leave as early as {1}".format(current_truck.label,
-                                                       current_truck.time_tracker.strftime("%H:%M:%S %p")))
+        # make delivery_order be a deque then use a temporary copy of it to determine estimated delivery times
         current_truck.delivery_order = deque(current_truck.packages_list)
         t_delivery_order = current_truck.delivery_order.copy()
         current_location = current_truck.location_address
@@ -867,37 +767,44 @@ if __name__ == "__main__":
             current_truck.time_tracker += trip_duration
 
         # return truck to the HUB
-        distance_to_hub = g.find_distance(g.get_vertex(current_truck.location_address), g.get_vertex(hub_address))
+        distance_to_hub = g.find_distance(g.get_vertex(current_location), g.get_vertex(hub_address))
         return_to_hub_duration = timedelta(seconds=int(distance_to_hub / current_truck.speed * 3600))
         current_truck.time_tracker += return_to_hub_duration
-        print("\tfinally, {0} returned to the HUB, address={1} -- {2:.1f} miles away -- delivered at {3}".format(
+        print("finally, {0} returned to the HUB, address={1} -- {2:.1f} miles away -- at {3}\n".format(
             current_truck.label, hub_address, distance_to_hub, current_truck.time_tracker.strftime("%H:%M:%S %p")))
 
         # truck_3 cannot leave until one driver has returned. Track which/when a truck returns
+        # set truck_3's time_tracker to its departure time, which is as soon as either truck_1 or truck_2 returns
         first_truck_back = truck_1
         if truck_2.time_tracker < truck_1.time_tracker:
             first_truck_back = truck_2
         # set truck_3's departure time to the arrival of first_truck_back
         truck_3.time_tracker = first_truck_back.time_tracker
 
+    # after calculations, reset the time tracker for each truck.
+    truck_1.time_tracker_reset()
+    truck_2.time_tracker_reset()
+    truck_3.time_tracker_reset()
+
+    # calculate this program's execution time by comparing start_time and end_time
     end_time = datetime.now()
     time_diff = (end_time - start_time)
     print("\n\nExecution time: {} seconds.\n\n".format(time_diff))
 
-    # This while loop controls the console menu users interact with
+    # This while loop controls the console menu which users interact with
     while True:
         print("""
             Welcome to the menu! Enter your selection below 
                 1. Lookup package info
                 2. Get snapshot of every package
                 3. Print packages status at a specified time
-                4. Print info by Truck
-                5. Recalculate the delivery order
-                7. Find total miles travelled by each truck & sum
+                4. Recalculate the delivery order
+                5. Print info by Truck
+                6. Print info by Truck (visually simplified for users)
+                7. Find total miles travelled by each truck & total sum
                 0. Exit/Quit
             """)
         ans = input("What would you like to do? \nINPUT: ")
-        # ans = "4"
         print()
         if ans == "1":
             """ Look up a user-specified package """
@@ -911,19 +818,18 @@ if __name__ == "__main__":
         elif ans == "2":
             """ Show the current status of every package """
 
-            for p in range(1, packages.count + 1):
-                print(packages.get(p))
+            for testing_package in range(1, packages.count + 1):
+                print(packages.get(testing_package))
 
         elif ans == "3":
             """ print packages status at a user-specified time """
 
             try:
                 time_text = input("Using format <HH:MM:SS> enter a time: ")
-                # time_text = "08:55:50"
                 status_time = datetime.strptime(time_text, "%H:%M:%S")
 
                 print("You asked for a status update on EVERY package at {}...".format(
-                    status_time.strftime("%H:%M:%S")))
+                    status_time.strftime("%H:%M:%S %testing_package")))
 
                 print("\nAll {0} assigned packages at {1}".format(truck_1.label, status_time.strftime("%H:%M:%S %p")))
                 truck_1.print_packages_status(status_time)
@@ -935,24 +841,6 @@ if __name__ == "__main__":
                 print("Incorrect entry. Please try again.")
 
         elif ans == "4":
-            """ Print truck info """
-
-            for printing_truck in vehicles:
-                print("\n{0} was loaded with {1} packages.".format(printing_truck.label,
-                                                                   len(printing_truck.packages_list)))
-                print("\t\tLocation: {0}, there are {1} packages to deliver.".format(printing_truck.location_address,
-                                                                                     len(
-                                                                                         printing_truck.packages_list) - len(
-                                                                                         printing_truck.delivered_packages)))
-                print("\t\tThe entire delivery route covers {0:.1f} miles.".format(printing_truck.miles_driven))
-
-                for pack in printing_truck.packages_list:
-                    # this prints the entire package
-                    # print("\t\t\tpackage #{0}: {1}".format(pack[0], pack))
-                    # the following print has more human-friendly info, for testing purposes
-                    print("\t\t\tpack #{0} \t@ {1}   \t{2}".format(pack[0], pack[1], pack[8]))
-
-        elif ans == "5":
             """ re-calculate delivery order for all trucks"""
 
             # recalculate the delivery order and reset each truck
@@ -962,51 +850,57 @@ if __name__ == "__main__":
                 a_truck.packages_list = path.copy()
                 a_truck.location_address = hub_address
 
-        elif ans == "6":
-            """" Prints all packs with constraints (delivery deadline or special notes) """
-            # get the keys for all constrained packs
-            for p in constrained_packages:
-                print(p)
+        elif ans == "5" or ans == "6":
+            """ Print truck info """
 
-            print("There are " + str(len(constrained_packages)) + " constrained Packages.")
+            # loop through all trucks in vehicles, print its package quantity, location, and the packages' info
+            for printing_truck in vehicles:
+                print("{0}\n"
+                      "\t\tLocation: {1}, there are {2} packages to deliver.".format(printing_truck.label,
+                                                                                     printing_truck.location_address,
+                                                                                     len(printing_truck.packages_list)))
+                for pack in printing_truck.packages_list:
+                    if ans == "5":
+                        # this prints the entire package
+                        print("\t\t\tpackage #{0}: {1}".format(pack[0], pack))
+                    else:   # if ans == "6"
+                        # this print is more human-friendly, primarily for testing purposes
+                        print("\t\t\tpack #{0} \t@ {1}   \t{2}".format(pack[0], pack[1], pack[8]))
 
         elif ans == "7":
             """ Find miles_total_all_vehicles travelled by each truck """
 
+            # set all trackers to 0.0
             miles_total_all_vehicles = 0.0
+            for current_t in vehicles:
+                current_t.miles_driven = 0.0
+
             # find the sum of the total distance each truck travels in their round trips
             for current_truck in vehicles:
                 t_packages = current_truck.packages_list.copy()
                 # loop through each package that is loaded,
                 #       tracking the DELIVERED TIME and miles_total_all_vehicles driven
 
-                print("\n{}".format(current_truck.label))
                 for pack in t_packages:
                     edge = g.find_distance(g.get_vertex(current_truck.location_address),
                                            g.get_vertex(pack[1]))
-                    if edge != 0.0:
-                        print("\t\t{0}-->{1} is \t\t{2:.1f} miles".format(current_truck.location_address,
-                                                                          pack[1], edge))
-                    else:
-                        print("\t\t\t\t{0}-->{1} = same address".format(current_truck.location_address, pack[1]))
                     current_truck.deliver_package(pack, edge)
 
                 # once every package has been delivered, return the truck to the HUB.
-                print("\t---return to HUB---")
                 trip_to_hub = g.find_distance(g.get_vertex(current_truck.location_address),
                                               g.get_vertex(hub_address))
                 current_truck.miles_driven += trip_to_hub
-                print("\t\t{0}-->{1} is \t\t{2:.1f} miles".format(current_truck.location_address,
-                                                                  hub_address, trip_to_hub))
                 current_truck.location_address = hub_address
                 miles_total_all_vehicles += current_truck.miles_driven
                 print("\t{0} drove a total of {1:.1f} miles".format(current_truck.label, current_truck.miles_driven))
+                # after calculations, reset current_truck.miles_driven to zero so future calculations are unaffected
+                current_truck.miles_driven = 0.0
 
-            print("{0:.1f} miles_total_all_vehicles total".format(miles_total_all_vehicles))
+            print("\n{0:.1f} miles_total_all_vehicles total".format(miles_total_all_vehicles))
 
         elif ans == "0":
             """ exit the program"""
             raise SystemExit
         else:
-            """ If user enters an unanticipated option, they should be re-prompted for input"""
+            """ If user input is an unanticipated option, they should be re-prompted for input"""
             print("Not a Valid Choice. Try again")
