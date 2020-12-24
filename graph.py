@@ -1,21 +1,12 @@
-# t_graph.py by Zachary McNamara zmcnama@my.wgu.edu ID#001182706
+# graph.py by Zachary McNamara zmcnama@my.wgu.edu ID#001182706
 from math import inf
 
 
 class Vertex:
-    def __init__(self, label, edges=[]):
+    def __init__(self, label):
         self.label = label
-        self.edge_lengths = edges
         self.distance = inf
         self.pred_vertex = None
-
-    @property
-    def edge_lengths(self):
-        return self._edge_lengths
-
-    @edge_lengths.setter
-    def edge_lengths(self, edges):
-        self._edge_lengths = edges
 
 
 class Graph:
@@ -34,7 +25,7 @@ class Graph:
         # print("adding an edge between " + from_vertex.label +
         #       " to " + to_vertex.label + " of distance " + str(weight))
 
-    def add_undirected_edge(self, vertex_a, vertex_b, weight=1.0):
+    def add_undirected_edge(self, vertex_a, vertex_b, weight):
         self.add_directed_edge(vertex_a, vertex_b, weight)
         self.add_directed_edge(vertex_b, vertex_a, weight)
 
@@ -47,6 +38,13 @@ class Graph:
                 return v
 
         return None
+
+    def find_distance(self, current_v, target_v):
+        try:
+            return self.edge_weights[(current_v, target_v)]
+        except KeyError:
+            print("ERROR ERROR ERROR --- graph.py's find_distance --- ERROR ERROR ERROR")
+            print("current_v={0} and target_v={1}".format(current_v.label, target_v.label))
 
 
 
