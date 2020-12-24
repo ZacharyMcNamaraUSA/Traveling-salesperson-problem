@@ -8,6 +8,15 @@ class HashTable:
         self.map = [None] * self.size
         self.count = 0
 
+    # count property indicates quantity of elements in hashtable (useful for iterating through all elements)
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, value):
+        self._count = value
+
     # Function to calculate the hash_value, given a key
     # This function uses ASCII values over package IDs to ease potential changes
     def get_hash(self, key) -> int:
@@ -55,31 +64,9 @@ class HashTable:
             if item is not None:
                 print(str(item))
 
-    @property
-    def count(self):
-        return self._count
-
     def get_hashed_list(self, key):
         for item in self.map:
             if item is not None:
                 return str(item)
             else:
                 return None
-
-    def __next__(self, key):
-        self.num += 1
-        try:
-            num = self.num
-            self.num += 1
-            return num
-        except IndexError:
-            raise StopIteration
-
-    next = __next__
-
-    def __iter__(self):
-        return self
-
-    @count.setter
-    def count(self, value):
-        self._count = value
